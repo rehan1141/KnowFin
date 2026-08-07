@@ -19,11 +19,11 @@ const navItems = [
 
 export const Sidebar: React.FC = () => {
   return (
-    <aside className="w-64 bg-white border-r border-slate-200 flex flex-col justify-between hidden md:flex min-h-screen">
+    <aside className="w-64 bg-white/80 backdrop-blur-sm border-r border-pink-100 flex flex-col justify-between hidden md:flex min-h-screen">
       <div>
         {/* Brand Logo */}
-        <div className="h-16 flex items-center px-6 border-b border-slate-100 gap-3">
-          <div className="p-2 bg-slate-900 text-white rounded-lg">
+        <div className="h-16 flex items-center px-6 border-b border-pink-100/60 gap-3">
+          <div className="p-2 bg-pink-600 text-white rounded-lg shadow-xs">
             <Wallet className="w-5 h-5" />
           </div>
           <span className="text-lg font-bold text-slate-900 tracking-tight">KnowFin</span>
@@ -40,12 +40,12 @@ export const Sidebar: React.FC = () => {
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     isActive
-                      ? 'bg-slate-100 text-slate-900 font-semibold'
-                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                      ? 'bg-pink-100/70 text-pink-950 font-semibold'
+                      : 'text-slate-600 hover:bg-pink-50/80 hover:text-slate-900'
                   }`
                 }
               >
-                <Icon className="w-4 h-4" />
+                <Icon className="w-4 h-4 text-pink-600" />
                 {item.name}
               </NavLink>
             );
@@ -54,8 +54,8 @@ export const Sidebar: React.FC = () => {
       </div>
 
       {/* Footer Branding */}
-      <div className="p-4 border-t border-slate-100">
-        <div className="p-3 bg-slate-50 rounded-lg text-xs text-slate-500">
+      <div className="p-4 border-t border-pink-100/60">
+        <div className="p-3 bg-pink-50/60 rounded-lg text-xs text-pink-900 font-medium">
           KnowFin Backend API v1.0.0
         </div>
       </div>
