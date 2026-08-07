@@ -1,8 +1,30 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { PieChart, DollarSign } from 'lucide-react';
+import { PieChart, DollarSign, BarChart3 } from 'lucide-react';
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell,
+  CartesianGrid,
+} from 'recharts';
 import { analyticsService } from '../services/analyticsService';
 import { useCurrency } from '../contexts/CurrencyContext';
 import type { CategorySpendingResponse } from '../types';
+
+const COLORS = [
+  '#f43f5e', // rose-500
+  '#ec4899', // pink-500
+  '#fb7185', // rose-400
+  '#e11d48', // rose-600
+  '#be123c', // rose-700
+  '#fda4af', // rose-300
+  '#f472b6', // pink-400
+];
 
 export const AnalyticsPage: React.FC = () => {
   const { formatAmount } = useCurrency();
@@ -29,13 +51,19 @@ export const AnalyticsPage: React.FC = () => {
     loadAnalytics();
   }, [loadAnalytics]);
 
+  const chartData = data?.categories.map((c) => ({
+    name: c.category,
+    amount: c.total_spent,
+    percentage: c.percentage,
+  })) || [];
+
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6 max-w-6xl">
       {/* Header & Date Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Analytics</h1>
-          <p className="text-sm text-slate-500 mt-1">Detailed breakdown of expense distribution and category shares</p>
+          <p className="text-sm text-slate-500 mt-1">Detailed visual analytics and category spending distributions</p>
         </div>
 
         <div className="flex gap-2">
@@ -78,11 +106,81 @@ export const AnalyticsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Category Spending Breakdown */}
+      {/* Interactive Charts Section */}
+      {!isLoading && chartData.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Bar Chart Card */}
+          <div className="glass-card rounded-2xl p-6 shadow-xs">
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 mb-6">
+              <BarChart3 className="w-4 h-4 text-rose-500" /> Category Breakdown (Bar Chart)
+            </h2>
+            <div className="h-72 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#fbcfe8" vertical={false} />
+                  <XAxis dataKey="name" stroke="#9f1239" fontSize={12} tickLine={false} />
+                  <YAxis stroke="#9f1239" fontSize={12} tickLine={false} />
+                  <Tooltip
+                    formatter={(val: any) => [formatAmount(Number(val)), 'Spent']}
+                    contentStyle={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                      borderRadius: '12px',
+                      border: '1px solid #fecdd3',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                    }}
+                  />
+                  <Bar dataKey="amount" radius={[8, 8, 0, 0]}>
+                    {chartData.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Pie Chart Card */}
+          <div className="glass-card rounded-2xl p-6 shadow-xs">
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 mb-6">
+              <PieChart className="w-4 h-4 text-rose-500" /> Spending Distribution (Pie Chart)
+            </h2>
+            <div className="h-72 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <RechartsPieChart>
+                  <Pie
+                    data={chartData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={95}
+                    paddingAngle={4}
+                    dataKey="amount"
+                  >
+                    {chartData.map((_, index) => (
+                      <Cell key={`cell-pie-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(val: any) => [formatAmount(Number(val)), 'Amount']}
+                    contentStyle={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                      borderRadius: '12px',
+                      border: '1px solid #fecdd3',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                    }}
+                  />
+                </RechartsPieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Category Spending Breakdown List */}
       <div className="glass-card rounded-2xl shadow-xs overflow-hidden">
         <div className="p-6 border-b border-rose-100 flex items-center justify-between">
           <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-            <PieChart className="w-4 h-4 text-rose-500" /> Spending Distribution by Category
+            <PieChart className="w-4 h-4 text-rose-500" /> Detailed Share Breakdown
           </h2>
           <span className="text-xs font-medium text-slate-500">
             {data?.categories.length || 0} active categories
@@ -99,23 +197,31 @@ export const AnalyticsPage: React.FC = () => {
           </div>
         ) : (
           <div className="p-6 space-y-6">
-            {data.categories.map((c) => (
+            {data.categories.map((c, index) => (
               <div key={c.category} className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-rose-400 to-pink-600" />
+                    <span
+                      className="w-3 h-3 rounded-full shadow-xs"
+                      style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                    />
                     <span className="font-semibold text-slate-900">{c.category}</span>
                   </div>
                   <div className="flex items-center gap-4">
                     <span className="font-bold text-slate-900">{formatAmount(c.total_spent)}</span>
-                    <span className="text-xs font-semibold text-rose-800/70 w-12 text-right">{c.percentage.toFixed(1)}%</span>
+                    <span className="text-xs font-semibold text-rose-800/70 w-12 text-right">
+                      {c.percentage.toFixed(1)}%
+                    </span>
                   </div>
                 </div>
 
                 <div className="w-full h-3 bg-rose-100/50 rounded-full overflow-hidden p-0.5 border border-rose-100">
                   <div
-                    className="h-full bg-gradient-to-r from-rose-400 to-pink-500 rounded-full transition-all duration-500"
-                    style={{ width: `${Math.min(c.percentage, 100)}%` }}
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${Math.min(c.percentage, 100)}%`,
+                      backgroundColor: COLORS[index % COLORS.length],
+                    }}
                   />
                 </div>
               </div>
