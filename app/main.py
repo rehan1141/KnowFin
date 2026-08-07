@@ -11,12 +11,14 @@ app = FastAPI(
 )
 
 from app.api.v1.categories_budgets import categories_router, budgets_router
+from app.api.v1.analytics import router as analytics_router
 
 # Register Routers
 app.include_router(auth_router, prefix=settings.API_V1_STR)
 app.include_router(expenses_router, prefix=settings.API_V1_STR)
 app.include_router(categories_router, prefix=settings.API_V1_STR)
 app.include_router(budgets_router, prefix=settings.API_V1_STR)
+app.include_router(analytics_router, prefix=settings.API_V1_STR)
 
 
 
