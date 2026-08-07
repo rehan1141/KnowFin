@@ -15,11 +15,13 @@ class Expense(Base):
     category = Column(String(50), nullable=False, default="Uncategorized", index=True)
     expense_date = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     
-    # Foreign Key linking to users.id
+    # Foreign Key linking to users.id and categories.id
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    
-    # ORM Relationship back to User
+    category_id = Column(Integer, ForeignKey("categories.id", ondelete="SET NULL"), nullable=True, index=True)
+
+    # ORM Relationships
     owner = relationship("User", back_populates="expenses")
+    category_rel = relationship("Category", back_populates="expenses")
 
     def __repr__(self):
         return f"<Expense id={self.id} title='{self.title}' amount={self.amount} user_id={self.user_id}>"

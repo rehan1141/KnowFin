@@ -9,6 +9,7 @@ class ExpenseBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
     amount: Decimal = Field(..., gt=0, decimal_places=2)
     category: Optional[str] = Field("Uncategorized", max_length=50)
+    category_id: Optional[int] = None
     expense_date: Optional[datetime] = None
 
 

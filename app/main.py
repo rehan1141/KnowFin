@@ -10,9 +10,13 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+from app.api.v1.categories_budgets import categories_router, budgets_router
+
 # Register Routers
 app.include_router(auth_router, prefix=settings.API_V1_STR)
 app.include_router(expenses_router, prefix=settings.API_V1_STR)
+app.include_router(categories_router, prefix=settings.API_V1_STR)
+app.include_router(budgets_router, prefix=settings.API_V1_STR)
 
 
 
