@@ -2,6 +2,47 @@
 
 @layer base {
   body {
-    @apply bg-pink-50/40 text-slate-800 antialiased;
+    @apply bg-gradient-to-br from-rose-50 via-pink-50/50 to-slate-50 text-slate-800 antialiased min-h-screen selection:bg-rose-200 selection:text-rose-900;
   }
+}
+
+/* Subtle Cherry Blossom Floating Petals / Soft Glow Effects */
+.bg-cherry-glow {
+  background: radial-gradient(circle at 15% 15%, rgba(251, 207, 232, 0.45) 0%, transparent 45%),
+              radial-gradient(circle at 85% 85%, rgba(254, 205, 211, 0.4) 0%, transparent 40%),
+              radial-gradient(circle at 50% 50%, rgba(255, 241, 242, 0.5) 0%, transparent 70%);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(253, 242, 248, 0.9);
+  box-shadow: 0 4px 20px -2px rgba(244, 114, 182, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.03);
+}
+
+.glass-card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px -4px rgba(244, 114, 182, 0.15), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
+  border-color: rgba(244, 114, 182, 0.3);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(244, 114, 182, 0.3);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(244, 114, 182, 0.5);
 }

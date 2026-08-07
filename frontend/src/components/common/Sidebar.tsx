@@ -6,7 +6,7 @@ import {
   Tags,
   PieChart,
   BarChart3,
-  Wallet,
+  Flower2,
 } from 'lucide-react';
 
 const navItems = [
@@ -19,18 +19,25 @@ const navItems = [
 
 export const Sidebar: React.FC = () => {
   return (
-    <aside className="w-64 bg-white/80 backdrop-blur-sm border-r border-pink-100 flex flex-col justify-between hidden md:flex min-h-screen">
+    <aside className="w-64 bg-white/70 backdrop-blur-xl border-r border-pink-100/80 flex flex-col justify-between hidden md:flex min-h-screen sticky top-0 h-screen">
       <div>
-        {/* Brand Logo */}
-        <div className="h-16 flex items-center px-6 border-b border-pink-100/60 gap-3">
-          <div className="p-2 bg-pink-600 text-white rounded-lg shadow-xs">
-            <Wallet className="w-5 h-5" />
+        {/* Brand Logo with Cherry Blossom Glow */}
+        <div className="h-20 flex items-center px-6 border-b border-rose-100/60 gap-3.5">
+          <div className="p-2.5 bg-gradient-to-br from-rose-400 to-pink-600 text-white rounded-xl shadow-md shadow-rose-200/50 flex items-center justify-center transform transition duration-300 hover:rotate-12">
+            <Flower2 className="w-5 h-5 animate-pulse" />
           </div>
-          <span className="text-lg font-bold text-slate-900 tracking-tight">KnowFin</span>
+          <div>
+            <span className="text-xl font-bold bg-gradient-to-r from-rose-600 via-pink-600 to-rose-900 bg-clip-text text-transparent tracking-tight">
+              KnowFin
+            </span>
+            <span className="block text-[10px] uppercase font-semibold tracking-wider text-rose-400">
+              Sakura Edition
+            </span>
+          </div>
         </div>
 
         {/* Navigation Links */}
-        <nav className="p-4 space-y-1">
+        <nav className="p-4 space-y-1.5">
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -38,14 +45,14 @@ export const Sidebar: React.FC = () => {
                 key={item.path}
                 to={item.path}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                  `flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
                     isActive
-                      ? 'bg-pink-100/70 text-pink-950 font-semibold'
-                      : 'text-slate-600 hover:bg-pink-50/80 hover:text-slate-900'
+                      ? 'bg-gradient-to-r from-rose-500/15 to-pink-500/10 text-rose-900 font-semibold shadow-xs border border-rose-200/50'
+                      : 'text-slate-600 hover:bg-rose-50/70 hover:text-rose-900 hover:translate-x-1'
                   }`
                 }
               >
-                <Icon className="w-4 h-4 text-pink-600" />
+                <Icon className="w-4 h-4 text-rose-500" />
                 {item.name}
               </NavLink>
             );
@@ -54,9 +61,10 @@ export const Sidebar: React.FC = () => {
       </div>
 
       {/* Footer Branding */}
-      <div className="p-4 border-t border-pink-100/60">
-        <div className="p-3 bg-pink-50/60 rounded-lg text-xs text-pink-900 font-medium">
-          KnowFin Backend API v1.0.0
+      <div className="p-4 border-t border-rose-100/60">
+        <div className="p-3.5 bg-gradient-to-r from-rose-50 to-pink-50 rounded-xl text-xs text-rose-900/80 border border-rose-100/50 shadow-xs flex items-center justify-between">
+          <span className="font-medium">Backend API v1.0</span>
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
         </div>
       </div>
     </aside>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { DollarSign, CreditCard, ArrowUpRight, AlertTriangle } from 'lucide-react';
+import { DollarSign, CreditCard, ArrowUpRight, AlertTriangle, Sparkles, TrendingUp } from 'lucide-react';
 import { analyticsService } from '../services/analyticsService';
 import { expenseService } from '../services/expenseService';
 import { formatCurrency, formatDate } from '../utils/formatters';
@@ -44,14 +44,14 @@ export const DashboardPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-500"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg">
+      <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl">
         {error}
       </div>
     );
@@ -59,48 +59,63 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Dashboard</h1>
-        <p className="text-sm text-slate-500 mt-1">Overview for current billing period</p>
+      {/* Header Banner */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-rose-500/10 via-pink-500/10 to-transparent p-6 rounded-2xl border border-rose-200/50 backdrop-blur-md">
+        <div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/80 rounded-full text-xs font-semibold text-rose-800 shadow-xs mb-2">
+            <Sparkles className="w-3.5 h-3.5 text-rose-500" /> Realtime Financial Overview
+          </div>
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Dashboard</h1>
+          <p className="text-sm text-slate-600 mt-1">
+            Overview for {new Date(0, currentMonth - 1).toLocaleString('default', { month: 'long' })} {currentYear}
+          </p>
+        </div>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+        <div className="glass-card glass-card-hover rounded-2xl p-6 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-rose-200/30 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none" />
           <div className="flex items-center justify-between text-slate-500 mb-4">
-            <span className="text-sm font-medium">Total Spent</span>
-            <div className="p-2 bg-slate-100 rounded-lg">
-              <DollarSign className="w-5 h-5 text-slate-700" />
+            <span className="text-xs font-bold uppercase tracking-wider text-rose-800/70">Total Spent</span>
+            <div className="p-3 bg-gradient-to-br from-rose-400 to-pink-500 text-white rounded-xl shadow-sm">
+              <DollarSign className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-3xl font-bold text-slate-900">
+          <p className="text-4xl font-extrabold text-slate-900">
             {formatCurrency(summary?.total_spent || 0)}
           </p>
-          <p className="text-xs text-slate-500 mt-2">Current month</p>
+          <div className="flex items-center gap-1 text-xs text-rose-600 font-medium mt-3">
+            <TrendingUp className="w-3.5 h-3.5" />
+            <span>Recorded for current month</span>
+          </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+        <div className="glass-card glass-card-hover rounded-2xl p-6 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-pink-200/30 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none" />
           <div className="flex items-center justify-between text-slate-500 mb-4">
-            <span className="text-sm font-medium">Transactions</span>
-            <div className="p-2 bg-slate-100 rounded-lg">
-              <CreditCard className="w-5 h-5 text-slate-700" />
+            <span className="text-xs font-bold uppercase tracking-wider text-pink-800/70">Transactions</span>
+            <div className="p-3 bg-gradient-to-br from-pink-500 to-rose-600 text-white rounded-xl shadow-sm">
+              <CreditCard className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-3xl font-bold text-slate-900">
+          <p className="text-4xl font-extrabold text-slate-900">
             {summary?.total_transactions || 0}
           </p>
-          <p className="text-xs text-slate-500 mt-2">Recorded expenses</p>
+          <p className="text-xs text-slate-500 mt-3 font-medium">Logged expenses</p>
         </div>
       </div>
 
       {/* Budget Overview */}
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+      <div className="glass-card rounded-2xl p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-base font-semibold text-slate-900">Budget Progress</h2>
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">Budget Health</h2>
+            <p className="text-xs text-slate-500">Live progress towards monthly limits</p>
+          </div>
           <Link
             to="/budgets"
-            className="text-xs font-medium text-slate-600 hover:text-slate-900 flex items-center gap-1"
+            className="text-xs font-semibold text-rose-600 hover:text-rose-800 flex items-center gap-1 bg-rose-50 border border-rose-200/60 px-3 py-1.5 rounded-xl transition"
           >
             Manage Budgets <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
@@ -109,32 +124,32 @@ export const DashboardPage: React.FC = () => {
         {budgetStatuses.length === 0 ? (
           <p className="text-sm text-slate-500">No budgets set for this month.</p>
         ) : (
-          <div className="space-y-5">
+          <div className="space-y-6">
             {budgetStatuses.map((b) => {
               const percentageUsed = b.monthly_limit > 0 ? (b.total_spent / b.monthly_limit) * 100 : 0;
               return (
                 <div key={b.category_id} className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-slate-700 flex items-center gap-2">
+                    <span className="font-semibold text-slate-800 flex items-center gap-2">
                       {b.category_name}
                       {b.is_exceeded && (
-                        <span className="inline-flex items-center gap-1 text-xs text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full font-normal">
+                        <span className="inline-flex items-center gap-1 text-xs text-rose-700 bg-rose-100/80 px-2.5 py-0.5 rounded-full font-medium">
                           <AlertTriangle className="w-3 h-3" /> Exceeded
                         </span>
                       )}
                     </span>
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs font-medium text-slate-600">
                       {formatCurrency(b.total_spent)} / {formatCurrency(b.monthly_limit)} ({percentageUsed.toFixed(0)}%)
                     </span>
                   </div>
-                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="w-full h-3 bg-rose-100/50 rounded-full overflow-hidden p-0.5 border border-rose-100">
                     <div
-                      className={`h-full rounded-full transition-all duration-300 ${
+                      className={`h-full rounded-full transition-all duration-500 ${
                         b.is_exceeded
-                          ? 'bg-rose-500'
+                          ? 'bg-gradient-to-r from-rose-500 to-red-600'
                           : percentageUsed > 80
-                          ? 'bg-amber-500'
-                          : 'bg-slate-900'
+                          ? 'bg-gradient-to-r from-amber-400 to-rose-500'
+                          : 'bg-gradient-to-r from-rose-400 to-pink-500'
                       }`}
                       style={{ width: `${Math.min(percentageUsed, 100)}%` }}
                     />
@@ -147,12 +162,15 @@ export const DashboardPage: React.FC = () => {
       </div>
 
       {/* Recent Expenses Table */}
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+      <div className="glass-card rounded-2xl p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-base font-semibold text-slate-900">Recent Expenses</h2>
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">Recent Transactions</h2>
+            <p className="text-xs text-slate-500">Latest expense entries</p>
+          </div>
           <Link
             to="/expenses"
-            className="text-xs font-medium text-slate-600 hover:text-slate-900 flex items-center gap-1"
+            className="text-xs font-semibold text-rose-600 hover:text-rose-800 flex items-center gap-1 bg-rose-50 border border-rose-200/60 px-3 py-1.5 rounded-xl transition"
           >
             View All <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
@@ -163,7 +181,7 @@ export const DashboardPage: React.FC = () => {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              <thead className="border-b border-rose-100 text-xs font-bold text-rose-900/60 uppercase tracking-wider">
                 <tr>
                   <th className="pb-3">Title</th>
                   <th className="pb-3">Category</th>
@@ -171,17 +189,17 @@ export const DashboardPage: React.FC = () => {
                   <th className="pb-3 text-right">Amount</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-rose-50">
                 {recentExpenses.map((e) => (
-                  <tr key={e.id} className="hover:bg-slate-50/50">
-                    <td className="py-3 font-medium text-slate-900">{e.title}</td>
-                    <td className="py-3 text-slate-600">
-                      <span className="inline-block bg-slate-100 px-2 py-0.5 rounded text-xs">
+                  <tr key={e.id} className="hover:bg-rose-50/40 transition">
+                    <td className="py-3.5 font-semibold text-slate-900">{e.title}</td>
+                    <td className="py-3.5 text-slate-600">
+                      <span className="inline-block bg-rose-100/70 text-rose-900 px-2.5 py-1 rounded-lg text-xs font-medium border border-rose-200/50">
                         {e.category || 'Uncategorized'}
                       </span>
                     </td>
-                    <td className="py-3 text-slate-500 text-xs">{formatDate(e.expense_date)}</td>
-                    <td className="py-3 text-right font-medium text-slate-900">
+                    <td className="py-3.5 text-slate-500 text-xs">{formatDate(e.expense_date)}</td>
+                    <td className="py-3.5 text-right font-bold text-slate-900">
                       {formatCurrency(e.amount)}
                     </td>
                   </tr>
