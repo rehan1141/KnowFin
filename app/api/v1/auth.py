@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
@@ -7,6 +7,7 @@ from app.schemas.user import UserCreate, UserResponse
 from app.schemas.token import Token
 from app.services.user_service import create_user, authenticate_user
 from app.core.security import create_access_token
+from app.core.limiter import limiter
 from app.api.deps import get_current_user
 from app.models.user import User
 
@@ -25,13 +26,15 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=Token)
+@limiter.limit("5/minute")
 def login(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     OAuth2 compatible token login, get an access token for future requests.
-    Uses username field as email.
+    Uses username field as email. Rate limited to 5 requests per minute per IP.
     """
     user = authenticate_user(db, email=form_data.username, password=form_data.password)
     if not user:

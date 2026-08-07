@@ -6,7 +6,7 @@ dev:
 
 # Run the full test suite
 test:
-	source .venv/bin/activate && pytest -v
+	source .venv/bin/activate && TESTING=true pytest -v
 
 # Apply all pending Alembic migrations
 migrate:

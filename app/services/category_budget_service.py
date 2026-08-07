@@ -31,6 +31,22 @@ def get_user_categories(db: Session, user_id: int) -> List[Category]:
     return db.query(Category).filter(Category.user_id == user_id).all()
 
 
+def delete_category(db: Session, category_id: int, user_id: int) -> None:
+    """Delete a category. Expenses with this category will have category_id set to NULL."""
+    category = (
+        db.query(Category)
+        .filter(Category.id == category_id, Category.user_id == user_id)
+        .first()
+    )
+    if not category:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Category not found."
+        )
+    db.delete(category)
+    db.commit()
+
+
 # Budget Services
 def create_or_update_budget(db: Session, budget_in: BudgetCreate, user_id: int) -> Budget:
     # Verify category belongs to user

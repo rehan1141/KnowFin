@@ -1,8 +1,7 @@
 from decimal import Decimal
-from typing import List, Dict, Any
+from typing import Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import func, extract
-from sqlalchemy.sql import func
 
 from app.models.expense import Expense
 from app.models.category import Category
@@ -77,40 +76,42 @@ def get_spending_by_category(db: Session, user_id: int, month: int, year: int) -
 
 
 def get_budget_status(db: Session, user_id: int, month: int, year: int) -> Dict[str, Any]:
-    """Compare set budget limits against actual spending per category."""
-    user_budgets = (
-        db.query(Budget, Category)
-        .join(Category, Budget.category_id == Category.id)
-        .filter(
-            Budget.user_id == user_id,
-            Budget.month == month,
-            Budget.year == year,
+    """
+    Compare set budget limits against actual spending per category.
+
+    Uses a single JOIN + GROUP BY query to avoid N+1 database queries.
+    """
+    rows = (
+        db.query(
+            Budget.id.label("budget_id"),
+            Budget.monthly_limit,
+            Category.id.label("category_id"),
+            Category.name.label("category_name"),
+            func.coalesce(func.sum(Expense.amount), Decimal("0.00")).label("total_spent"),
         )
+        .join(Category, Budget.category_id == Category.id)
+        .outerjoin(
+            Expense,
+            (Expense.category_id == Category.id)
+            & (Expense.user_id == user_id)
+            & (extract("month", Expense.expense_date) == month)
+            & (extract("year", Expense.expense_date) == year),
+        )
+        .filter(Budget.user_id == user_id, Budget.month == month, Budget.year == year)
+        .group_by(Budget.id, Budget.monthly_limit, Category.id, Category.name)
         .all()
     )
 
     budget_items = []
-    for budget, category in user_budgets:
-        spent = (
-            db.query(func.coalesce(func.sum(Expense.amount), Decimal("0.00")))
-            .filter(
-                Expense.user_id == user_id,
-                Expense.category_id == category.id,
-                extract("month", Expense.expense_date) == month,
-                extract("year", Expense.expense_date) == year,
-            )
-            .scalar()
-            or Decimal("0.00")
-        )
-
-        remaining = budget.monthly_limit - spent
+    for row in rows:
+        remaining = row.monthly_limit - row.total_spent
         budget_items.append({
-            "category_id": category.id,
-            "category_name": category.name,
-            "monthly_limit": budget.monthly_limit,
-            "total_spent": spent,
+            "category_id": row.category_id,
+            "category_name": row.category_name,
+            "monthly_limit": row.monthly_limit,
+            "total_spent": row.total_spent,
             "remaining": remaining,
-            "is_exceeded": spent > budget.monthly_limit,
+            "is_exceeded": row.total_spent > row.monthly_limit,
         })
 
     return {

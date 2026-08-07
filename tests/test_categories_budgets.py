@@ -69,3 +69,7 @@ def test_category_and_budget_lifecycle():
     list_budgets = client.get("/api/v1/budgets/", headers=headers)
     assert list_budgets.status_code == 200
     assert len(list_budgets.json()) >= 1
+
+    # 6. Delete Category
+    del_cat = client.delete(f"/api/v1/categories/{category_id}", headers=headers)
+    assert del_cat.status_code == 204

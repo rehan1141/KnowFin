@@ -27,11 +27,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      POSTGRES_SERVER: db
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-knowfin}
-      POSTGRES_PORT: 5432
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-knowfin}
       SECRET_KEY: ${SECRET_KEY:-your_super_secret_key_here_must_be_32_chars_min}
       ENVIRONMENT: production
     depends_on:

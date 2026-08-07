@@ -48,8 +48,11 @@ def get_user_expenses(
     # Total count before pagination
     total = query.count()
 
-    # Sorting
-    sort_column = getattr(Expense, sort_by, Expense.expense_date)
+    # Sorting — validate sort_by against explicit allowlist to prevent attribute injection
+    ALLOWED_SORT_FIELDS = {"expense_date", "amount", "title"}
+    if sort_by not in ALLOWED_SORT_FIELDS:
+        sort_by = "expense_date"
+    sort_column = getattr(Expense, sort_by)
     if sort_order.lower() == "asc":
         query = query.order_by(sort_column.asc())
     else:

@@ -39,6 +39,17 @@ def get_categories(
     return category_budget_service.get_user_categories(db, user_id=current_user.id)
 
 
+@categories_router.delete("/{category_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_category(
+    category_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Delete a category. Associated expenses will have their category_id set to NULL."""
+    category_budget_service.delete_category(db, category_id=category_id, user_id=current_user.id)
+    return None
+
+
 # Budgets Endpoints
 @budgets_router.post("/", response_model=BudgetResponse, status_code=status.HTTP_201_CREATED)
 def set_budget(
