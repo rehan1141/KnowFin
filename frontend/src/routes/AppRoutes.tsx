@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
+import { DashboardLayout } from '../layouts/DashboardLayout';
 import { LandingPage } from '../pages/LandingPage';
 import { LoginPage } from '../pages/LoginPage';
 import { RegisterPage } from '../pages/RegisterPage';
@@ -19,12 +20,14 @@ export const AppRoutes: React.FC = () => {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
 
-      {/* Protected App Routes */}
-      <Route path="/dashboard" element={<DashboardPage />} />
-      <Route path="/expenses" element={<ExpensesPage />} />
-      <Route path="/categories" element={<CategoriesPage />} />
-      <Route path="/budgets" element={<BudgetsPage />} />
-      <Route path="/analytics" element={<AnalyticsPage />} />
+      {/* Protected App Routes wrapped in DashboardLayout */}
+      <Route element={<DashboardLayout />}>
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/expenses" element={<ExpensesPage />} />
+        <Route path="/categories" element={<CategoriesPage />} />
+        <Route path="/budgets" element={<BudgetsPage />} />
+        <Route path="/analytics" element={<AnalyticsPage />} />
+      </Route>
 
       {/* 404 Catch-All */}
       <Route path="/404" element={<NotFoundPage />} />
