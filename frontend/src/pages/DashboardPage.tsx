@@ -3,10 +3,12 @@ import { Link } from 'react-router-dom';
 import { DollarSign, CreditCard, ArrowUpRight, AlertTriangle, Sparkles, TrendingUp } from 'lucide-react';
 import { analyticsService } from '../services/analyticsService';
 import { expenseService } from '../services/expenseService';
-import { formatCurrency, formatDate } from '../utils/formatters';
+import { useCurrency } from '../contexts/CurrencyContext';
+import { formatDate } from '../utils/formatters';
 import type { MonthlySummary, BudgetStatusItem, Expense } from '../types';
 
 export const DashboardPage: React.FC = () => {
+  const { formatAmount } = useCurrency();
   const currentDate = new Date();
   const currentMonth = currentDate.getMonth() + 1;
   const currentYear = currentDate.getFullYear();
@@ -83,7 +85,7 @@ export const DashboardPage: React.FC = () => {
             </div>
           </div>
           <p className="text-4xl font-extrabold text-slate-900">
-            {formatCurrency(summary?.total_spent || 0)}
+            {formatAmount(summary?.total_spent || 0)}
           </p>
           <div className="flex items-center gap-1 text-xs text-rose-600 font-medium mt-3">
             <TrendingUp className="w-3.5 h-3.5" />
@@ -139,7 +141,7 @@ export const DashboardPage: React.FC = () => {
                       )}
                     </span>
                     <span className="text-xs font-medium text-slate-600">
-                      {formatCurrency(b.total_spent)} / {formatCurrency(b.monthly_limit)} ({percentageUsed.toFixed(0)}%)
+                      {formatAmount(b.total_spent)} / {formatAmount(b.monthly_limit)} ({percentageUsed.toFixed(0)}%)
                     </span>
                   </div>
                   <div className="w-full h-3 bg-rose-100/50 rounded-full overflow-hidden p-0.5 border border-rose-100">
@@ -200,7 +202,7 @@ export const DashboardPage: React.FC = () => {
                     </td>
                     <td className="py-3.5 text-slate-500 text-xs">{formatDate(e.expense_date)}</td>
                     <td className="py-3.5 text-right font-bold text-slate-900">
-                      {formatCurrency(e.amount)}
+                      {formatAmount(e.amount)}
                     </td>
                   </tr>
                 ))}

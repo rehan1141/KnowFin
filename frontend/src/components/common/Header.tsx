@@ -1,5 +1,6 @@
 import React from 'react';
-import { User, LogOut, Sparkles } from 'lucide-react';
+import { User, LogOut, Sparkles, Coins } from 'lucide-react';
+import { useCurrency, type Currency } from '../../contexts/CurrencyContext';
 
 interface HeaderProps {
   userEmail?: string;
@@ -7,6 +8,8 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ userEmail, onLogout }) => {
+  const { currency, setCurrency } = useCurrency();
+
   return (
     <header className="h-20 bg-white/60 backdrop-blur-md border-b border-rose-100/80 px-6 md:px-8 flex items-center justify-between sticky top-0 z-40">
       <div className="flex items-center gap-2">
@@ -17,6 +20,20 @@ export const Header: React.FC<HeaderProps> = ({ userEmail, onLogout }) => {
       </div>
 
       <div className="flex items-center gap-4">
+        {/* Currency Switcher Dropdown */}
+        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/80 border border-rose-200/80 rounded-xl text-xs font-semibold text-rose-900 shadow-xs">
+          <Coins className="w-3.5 h-3.5 text-rose-500" />
+          <select
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value as Currency)}
+            className="bg-transparent outline-none cursor-pointer text-slate-800 font-bold"
+          >
+            <option value="INR">₹ INR</option>
+            <option value="USD">$ USD</option>
+            <option value="EUR">€ EUR</option>
+          </select>
+        </div>
+
         {userEmail && (
           <div className="flex items-center gap-2 px-3.5 py-1.5 bg-rose-50/80 border border-rose-100 rounded-full text-xs font-medium text-rose-900 shadow-xs">
             <User className="w-3.5 h-3.5 text-rose-500" />

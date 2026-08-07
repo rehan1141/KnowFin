@@ -3,10 +3,11 @@ import { Plus, Trash2, AlertTriangle, CheckCircle } from 'lucide-react';
 import { budgetService } from '../services/budgetService';
 import { categoryService } from '../services/categoryService';
 import { analyticsService } from '../services/analyticsService';
-import { formatCurrency } from '../utils/formatters';
+import { useCurrency } from '../contexts/CurrencyContext';
 import type { Category, BudgetStatusItem } from '../types';
 
 export const BudgetsPage: React.FC = () => {
+  const { formatAmount, symbol } = useCurrency();
   const currentDate = new Date();
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
@@ -84,7 +85,7 @@ export const BudgetsPage: React.FC = () => {
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(Number(e.target.value))}
-            className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm bg-white outline-none"
+            className="px-3 py-1.5 border border-rose-200/80 rounded-xl text-sm bg-white/80 outline-none"
           >
             {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
               <option key={m} value={m}>
@@ -96,7 +97,7 @@ export const BudgetsPage: React.FC = () => {
           <select
             value={selectedYear}
             onChange={(e) => setSelectedYear(Number(e.target.value))}
-            className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm bg-white outline-none"
+            className="px-3 py-1.5 border border-rose-200/80 rounded-xl text-sm bg-white/80 outline-none"
           >
             {[2024, 2025, 2026].map((y) => (
               <option key={y} value={y}>
@@ -108,10 +109,10 @@ export const BudgetsPage: React.FC = () => {
       </div>
 
       {/* Set Budget Form */}
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-        <h2 className="text-base font-semibold text-slate-900 mb-4">Set Category Budget</h2>
+      <div className="glass-card rounded-2xl p-6 shadow-xs">
+        <h2 className="text-base font-bold text-slate-900 mb-4">Set Category Budget</h2>
         {error && (
-          <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-lg">
+          <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-xl">
             {error}
           </div>
         )}
@@ -119,7 +120,7 @@ export const BudgetsPage: React.FC = () => {
           <select
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
-            className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white outline-none"
+            className="px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm bg-white outline-none"
           >
             <option value="">Select Category</option>
             {categories.map((c) => (
@@ -132,16 +133,16 @@ export const BudgetsPage: React.FC = () => {
           <input
             type="number"
             step="0.01"
-            placeholder="Monthly Limit ($)"
+            placeholder={`Monthly Limit (${symbol})`}
             value={monthlyLimit}
             onChange={(e) => setMonthlyLimit(e.target.value)}
-            className="px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none"
+            className="px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm outline-none bg-white"
           />
 
           <button
             type="submit"
             disabled={isSubmitting || !categoryId || !monthlyLimit}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-rose-500 to-pink-600 text-white text-sm font-medium rounded-xl hover:opacity-95 transition disabled:opacity-50 shadow-xs"
           >
             <Plus className="w-4 h-4" /> Save Budget
           </button>
@@ -149,16 +150,16 @@ export const BudgetsPage: React.FC = () => {
       </div>
 
       {/* Budget Progress Cards */}
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-200">
-          <h2 className="text-base font-semibold text-slate-900">
+      <div className="glass-card rounded-2xl shadow-xs overflow-hidden">
+        <div className="p-6 border-b border-rose-100">
+          <h2 className="text-base font-bold text-slate-900">
             Budget Status ({budgetStatuses.length})
           </h2>
         </div>
 
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-500"></div>
           </div>
         ) : budgetStatuses.length === 0 ? (
           <div className="text-center py-12 text-slate-500">
@@ -169,23 +170,23 @@ export const BudgetsPage: React.FC = () => {
             {budgetStatuses.map((b) => {
               const percentage = b.monthly_limit > 0 ? (b.total_spent / b.monthly_limit) * 100 : 0;
               return (
-                <div key={b.category_id} className="space-y-2 border-b border-slate-100 pb-5 last:border-0 last:pb-0">
+                <div key={b.category_id} className="space-y-2 border-b border-rose-50 pb-5 last:border-0 last:pb-0">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-slate-900 text-sm">{b.category_name}</span>
+                      <span className="font-semibold text-slate-900 text-sm">{b.category_name}</span>
                       {b.is_exceeded ? (
-                        <span className="inline-flex items-center gap-1 text-xs text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full font-medium">
+                        <span className="inline-flex items-center gap-1 text-xs text-rose-700 bg-rose-100/80 px-2.5 py-0.5 rounded-full font-medium">
                           <AlertTriangle className="w-3 h-3" /> Over Budget
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">
+                        <span className="inline-flex items-center gap-1 text-xs text-emerald-700 bg-emerald-100/80 px-2.5 py-0.5 rounded-full font-medium">
                           <CheckCircle className="w-3 h-3" /> On Track
                         </span>
                       )}
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-xs text-slate-500">
-                        {formatCurrency(b.total_spent)} / {formatCurrency(b.monthly_limit)}
+                      <span className="text-xs font-medium text-slate-600">
+                        {formatAmount(b.total_spent)} / {formatAmount(b.monthly_limit)}
                       </span>
                       {b.category_id && (
                         <button
@@ -198,14 +199,14 @@ export const BudgetsPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="w-full h-3 bg-rose-100/50 rounded-full overflow-hidden p-0.5 border border-rose-100">
                     <div
-                      className={`h-full rounded-full transition-all duration-300 ${
+                      className={`h-full rounded-full transition-all duration-500 ${
                         b.is_exceeded
-                          ? 'bg-rose-500'
+                          ? 'bg-gradient-to-r from-rose-500 to-red-600'
                           : percentage > 80
-                          ? 'bg-amber-500'
-                          : 'bg-slate-900'
+                          ? 'bg-gradient-to-r from-amber-400 to-rose-500'
+                          : 'bg-gradient-to-r from-rose-400 to-pink-500'
                       }`}
                       style={{ width: `${Math.min(percentage, 100)}%` }}
                     />

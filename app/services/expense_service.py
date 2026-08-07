@@ -5,15 +5,28 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 
 from app.models.expense import Expense
+from app.models.category import Category
 from app.schemas.expense import ExpenseCreate, ExpenseUpdate
 
 
 def create_expense(db: Session, expense_in: ExpenseCreate, user_id: int) -> Expense:
     """Create a new expense record for the user."""
+    category_name = expense_in.category or "Uncategorized"
+    
+    # If category_id is provided, fetch its actual name
+    if expense_in.category_id:
+        category_obj = db.query(Category).filter(
+            Category.id == expense_in.category_id,
+            Category.user_id == user_id
+        ).first()
+        if category_obj:
+            category_name = category_obj.name
+
     db_expense = Expense(
         title=expense_in.title,
         amount=expense_in.amount,
-        category=expense_in.category or "Uncategorized",
+        category=category_name,
+        category_id=expense_in.category_id,
         expense_date=expense_in.expense_date,
         user_id=user_id,
     )
@@ -48,7 +61,7 @@ def get_user_expenses(
     # Total count before pagination
     total = query.count()
 
-    # Sorting — validate sort_by against explicit allowlist to prevent attribute injection
+    # Sorting — validate sort_by against explicit allowlist
     ALLOWED_SORT_FIELDS = {"expense_date", "amount", "title"}
     if sort_by not in ALLOWED_SORT_FIELDS:
         sort_by = "expense_date"
@@ -93,6 +106,14 @@ def update_expense(
     """Update an existing expense record."""
     expense = get_expense_by_id(db, expense_id=expense_id, user_id=user_id)
     update_data = expense_in.model_dump(exclude_unset=True)
+
+    if "category_id" in update_data and update_data["category_id"]:
+        category_obj = db.query(Category).filter(
+            Category.id == update_data["category_id"],
+            Category.user_id == user_id
+        ).first()
+        if category_obj:
+            update_data["category"] = category_obj.name
 
     for field, value in update_data.items():
         setattr(expense, field, value)
