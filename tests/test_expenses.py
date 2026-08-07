@@ -38,10 +38,14 @@ def test_expense_crud_lifecycle():
     assert float(expense["amount"]) == 5.50
     expense_id = expense["id"]
 
-    # 2. Get All Expenses
+    # 2. Get All Expenses (Paginated Response)
     list_resp = client.get("/api/v1/expenses/", headers=headers)
     assert list_resp.status_code == 200
-    assert len(list_resp.json()) >= 1
+    payload = list_resp.json()
+    assert "items" in payload
+    assert payload["total"] >= 1
+    assert payload["page"] == 1
+    assert len(payload["items"]) >= 1
 
     # 3. Get Expense by ID
     get_resp = client.get(f"/api/v1/expenses/{expense_id}", headers=headers)

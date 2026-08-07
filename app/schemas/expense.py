@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
+from typing import List, Optional
 from pydantic import BaseModel, Field
 
 
@@ -32,3 +32,13 @@ class ExpenseResponse(ExpenseBase):
     expense_date: datetime
 
     model_config = {"from_attributes": True}
+
+
+class PaginatedExpenseResponse(BaseModel):
+    """Schema for paginated expense responses."""
+    items: List[ExpenseResponse]
+    total: int
+    page: int
+    page_size: int
+    pages: int
+

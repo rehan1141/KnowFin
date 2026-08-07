@@ -1,3 +1,5 @@
+import math
+from datetime import datetime
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
@@ -22,17 +24,49 @@ def create_expense(db: Session, expense_in: ExpenseCreate, user_id: int) -> Expe
 
 
 def get_user_expenses(
-    db: Session, user_id: int, skip: int = 0, limit: int = 100
-) -> List[Expense]:
-    """Retrieve all expenses owned by a specific user with pagination."""
-    return (
-        db.query(Expense)
-        .filter(Expense.user_id == user_id)
-        .order_by(Expense.expense_date.desc())
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
+    db: Session,
+    user_id: int,
+    page: int = 1,
+    page_size: int = 10,
+    category: Optional[str] = None,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+    sort_by: str = "expense_date",
+    sort_order: str = "desc",
+) -> dict:
+    """Retrieve expenses owned by user with pagination, filtering, and sorting."""
+    query = db.query(Expense).filter(Expense.user_id == user_id)
+
+    # Filtering
+    if category:
+        query = query.filter(Expense.category.ilike(f"%{category}%"))
+    if start_date:
+        query = query.filter(Expense.expense_date >= start_date)
+    if end_date:
+        query = query.filter(Expense.expense_date <= end_date)
+
+    # Total count before pagination
+    total = query.count()
+
+    # Sorting
+    sort_column = getattr(Expense, sort_by, Expense.expense_date)
+    if sort_order.lower() == "asc":
+        query = query.order_by(sort_column.asc())
+    else:
+        query = query.order_by(sort_column.desc())
+
+    # Pagination calculation
+    offset = (page - 1) * page_size
+    items = query.offset(offset).limit(page_size).all()
+    pages = math.ceil(total / page_size) if total > 0 else 1
+
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": pages,
+    }
 
 
 def get_expense_by_id(db: Session, expense_id: int, user_id: int) -> Expense:
