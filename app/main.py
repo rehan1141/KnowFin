@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from app.core.config import settings
 from app.api.v1.auth import router as auth_router
+from app.api.v1.expenses import router as expenses_router
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -11,6 +12,8 @@ app = FastAPI(
 
 # Register Routers
 app.include_router(auth_router, prefix=settings.API_V1_STR)
+app.include_router(expenses_router, prefix=settings.API_V1_STR)
+
 
 
 @app.get("/health", tags=["Health Check"])
