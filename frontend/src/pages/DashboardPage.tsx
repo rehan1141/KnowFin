@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { DollarSign, CreditCard, ArrowUpRight, AlertTriangle, Sparkles, TrendingUp } from 'lucide-react';
+import { DollarSign, CreditCard, ArrowUpRight, AlertTriangle, TrendingUp, ShieldCheck } from 'lucide-react';
 import { analyticsService } from '../services/analyticsService';
 import { expenseService } from '../services/expenseService';
 import { useCurrency } from '../contexts/CurrencyContext';
@@ -46,14 +46,14 @@ export const DashboardPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-500"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl">
+      <div className="p-4 bg-rose-950/80 border border-rose-800 text-rose-300 rounded-xl">
         {error}
       </div>
     );
@@ -62,69 +62,67 @@ export const DashboardPage: React.FC = () => {
   return (
     <div className="space-y-8">
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-rose-500/10 via-pink-500/10 to-transparent p-6 rounded-2xl border border-rose-200/50 backdrop-blur-md">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-emerald-900/40 via-teal-900/30 to-transparent p-6 rounded-2xl border border-emerald-800/50 backdrop-blur-xl">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/80 rounded-full text-xs font-semibold text-rose-800 shadow-xs mb-2">
-            <Sparkles className="w-3.5 h-3.5 text-rose-500" /> Realtime Financial Overview
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 rounded-full text-xs font-semibold text-emerald-300 mb-2">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> Enterprise Financial Overview
           </div>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Dashboard</h1>
-          <p className="text-sm text-slate-600 mt-1">
-            Overview for {new Date(0, currentMonth - 1).toLocaleString('default', { month: 'long' })} {currentYear}
+          <h1 className="text-3xl font-black text-white tracking-tight">Overview</h1>
+          <p className="text-sm text-slate-400 mt-1">
+            Performance metrics for {new Date(0, currentMonth - 1).toLocaleString('default', { month: 'long' })} {currentYear}
           </p>
         </div>
       </div>
 
-      {/* Summary Cards */}
+      {/* Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="glass-card glass-card-hover rounded-2xl p-6 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-rose-200/30 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none" />
-          <div className="flex items-center justify-between text-slate-500 mb-4">
-            <span className="text-xs font-bold uppercase tracking-wider text-rose-800/70">Total Spent</span>
-            <div className="p-3 bg-gradient-to-br from-rose-400 to-pink-500 text-white rounded-xl shadow-sm">
+        <div className="fintech-card fintech-card-hover rounded-2xl p-6 relative overflow-hidden">
+          <div className="flex items-center justify-between text-slate-400 mb-4">
+            <span className="text-xs font-bold uppercase tracking-widest text-emerald-400">Total Capital Outflow</span>
+            <div className="p-3 bg-emerald-500/20 text-emerald-300 rounded-xl border border-emerald-500/30 shadow-inner">
               <DollarSign className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-4xl font-extrabold text-slate-900">
+          <p className="text-4xl font-black text-white tracking-tight">
             {formatAmount(summary?.total_spent || 0)}
           </p>
-          <div className="flex items-center gap-1 text-xs text-rose-600 font-medium mt-3">
+          <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold mt-4">
             <TrendingUp className="w-3.5 h-3.5" />
-            <span>Recorded for current month</span>
+            <span>Verified against ledger records</span>
           </div>
         </div>
 
-        <div className="glass-card glass-card-hover rounded-2xl p-6 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-pink-200/30 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none" />
-          <div className="flex items-center justify-between text-slate-500 mb-4">
-            <span className="text-xs font-bold uppercase tracking-wider text-pink-800/70">Transactions</span>
-            <div className="p-3 bg-gradient-to-br from-pink-500 to-rose-600 text-white rounded-xl shadow-sm">
+        <div className="fintech-card fintech-card-hover rounded-2xl p-6 relative overflow-hidden">
+          <div className="flex items-center justify-between text-slate-400 mb-4">
+            <span className="text-xs font-bold uppercase tracking-widest text-teal-400">Executed Transactions</span>
+            <div className="p-3 bg-teal-500/20 text-teal-300 rounded-xl border border-teal-500/30 shadow-inner">
               <CreditCard className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-4xl font-extrabold text-slate-900">
+          <p className="text-4xl font-black text-white tracking-tight">
             {summary?.total_transactions || 0}
           </p>
-          <p className="text-xs text-slate-500 mt-3 font-medium">Logged expenses</p>
+          <p className="text-xs text-slate-400 font-medium mt-4">Logged expense records</p>
         </div>
       </div>
 
-      {/* Budget Overview */}
-      <div className="glass-card rounded-2xl p-6">
+      {/* Budget Allocation Health */}
+      <div className="fintech-card rounded-2xl p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-lg font-bold text-slate-900">Budget Health</h2>
-            <p className="text-xs text-slate-500">Live progress towards monthly limits</p>
+            <h2 className="text-lg font-bold text-white">Budget Allocations</h2>
+            <p className="text-xs text-slate-400">Realtime tracking against set monthly limits</p>
           </div>
           <Link
             to="/budgets"
-            className="text-xs font-semibold text-rose-600 hover:text-rose-800 flex items-center gap-1 bg-rose-50 border border-rose-200/60 px-3 py-1.5 rounded-xl transition"
+            className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 bg-emerald-950/60 border border-emerald-800/60 px-3.5 py-2 rounded-xl transition"
           >
-            Manage Budgets <ArrowUpRight className="w-3.5 h-3.5" />
+            Manage Limits <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
         {budgetStatuses.length === 0 ? (
-          <p className="text-sm text-slate-500">No budgets set for this month.</p>
+          <p className="text-sm text-slate-400">No active budget allocations configured.</p>
         ) : (
           <div className="space-y-6">
             {budgetStatuses.map((b) => {
@@ -132,26 +130,26 @@ export const DashboardPage: React.FC = () => {
               return (
                 <div key={b.category_id} className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="font-semibold text-slate-800 flex items-center gap-2">
+                    <span className="font-semibold text-slate-200 flex items-center gap-2">
                       {b.category_name}
                       {b.is_exceeded && (
-                        <span className="inline-flex items-center gap-1 text-xs text-rose-700 bg-rose-100/80 px-2.5 py-0.5 rounded-full font-medium">
-                          <AlertTriangle className="w-3 h-3" /> Exceeded
+                        <span className="inline-flex items-center gap-1 text-xs text-rose-300 bg-rose-950/80 border border-rose-800 px-2.5 py-0.5 rounded-full font-semibold">
+                          <AlertTriangle className="w-3 h-3" /> Exceeded Limit
                         </span>
                       )}
                     </span>
-                    <span className="text-xs font-medium text-slate-600">
+                    <span className="text-xs font-bold text-slate-300">
                       {formatAmount(b.total_spent)} / {formatAmount(b.monthly_limit)} ({percentageUsed.toFixed(0)}%)
                     </span>
                   </div>
-                  <div className="w-full h-3 bg-rose-100/50 rounded-full overflow-hidden p-0.5 border border-rose-100">
+                  <div className="w-full h-3 bg-emerald-950/80 rounded-full overflow-hidden p-0.5 border border-emerald-900">
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${
                         b.is_exceeded
                           ? 'bg-gradient-to-r from-rose-500 to-red-600'
                           : percentageUsed > 80
-                          ? 'bg-gradient-to-r from-amber-400 to-rose-500'
-                          : 'bg-gradient-to-r from-rose-400 to-pink-500'
+                          ? 'bg-gradient-to-r from-amber-400 to-emerald-500'
+                          : 'bg-gradient-to-r from-emerald-400 to-teal-400'
                       }`}
                       style={{ width: `${Math.min(percentageUsed, 100)}%` }}
                     />
@@ -163,27 +161,27 @@ export const DashboardPage: React.FC = () => {
         )}
       </div>
 
-      {/* Recent Expenses Table */}
-      <div className="glass-card rounded-2xl p-6">
+      {/* Recent Transactions Table */}
+      <div className="fintech-card rounded-2xl p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-lg font-bold text-slate-900">Recent Transactions</h2>
-            <p className="text-xs text-slate-500">Latest expense entries</p>
+            <h2 className="text-lg font-bold text-white">Recent Transactions</h2>
+            <p className="text-xs text-slate-400">Latest activity log</p>
           </div>
           <Link
             to="/expenses"
-            className="text-xs font-semibold text-rose-600 hover:text-rose-800 flex items-center gap-1 bg-rose-50 border border-rose-200/60 px-3 py-1.5 rounded-xl transition"
+            className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 bg-emerald-950/60 border border-emerald-800/60 px-3.5 py-2 rounded-xl transition"
           >
             View All <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
         {recentExpenses.length === 0 ? (
-          <p className="text-sm text-slate-500">No recent expenses found.</p>
+          <p className="text-sm text-slate-400">No transaction activity logged.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="border-b border-rose-100 text-xs font-bold text-rose-900/60 uppercase tracking-wider">
+              <thead className="border-b border-emerald-800/50 text-xs font-bold text-emerald-400/80 uppercase tracking-wider">
                 <tr>
                   <th className="pb-3">Title</th>
                   <th className="pb-3">Category</th>
@@ -191,17 +189,17 @@ export const DashboardPage: React.FC = () => {
                   <th className="pb-3 text-right">Amount</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-rose-50">
+              <tbody className="divide-y divide-emerald-900/40">
                 {recentExpenses.map((e) => (
-                  <tr key={e.id} className="hover:bg-rose-50/40 transition">
-                    <td className="py-3.5 font-semibold text-slate-900">{e.title}</td>
-                    <td className="py-3.5 text-slate-600">
-                      <span className="inline-block bg-rose-100/70 text-rose-900 px-2.5 py-1 rounded-lg text-xs font-medium border border-rose-200/50">
+                  <tr key={e.id} className="hover:bg-emerald-900/30 transition">
+                    <td className="py-3.5 font-bold text-white">{e.title}</td>
+                    <td className="py-3.5 text-slate-300">
+                      <span className="inline-block bg-emerald-950 border border-emerald-800 text-emerald-300 px-2.5 py-1 rounded-lg text-xs font-semibold">
                         {e.category || 'Uncategorized'}
                       </span>
                     </td>
-                    <td className="py-3.5 text-slate-500 text-xs">{formatDate(e.expense_date)}</td>
-                    <td className="py-3.5 text-right font-bold text-slate-900">
+                    <td className="py-3.5 text-slate-400 text-xs font-medium">{formatDate(e.expense_date)}</td>
+                    <td className="py-3.5 text-right font-black text-white">
                       {formatAmount(e.amount)}
                     </td>
                   </tr>

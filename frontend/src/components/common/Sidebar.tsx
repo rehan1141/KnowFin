@@ -6,7 +6,8 @@ import {
   Tags,
   PieChart,
   BarChart3,
-  Flower2,
+  Shield,
+  TrendingUp,
 } from 'lucide-react';
 
 const navItems = [
@@ -19,19 +20,19 @@ const navItems = [
 
 export const Sidebar: React.FC = () => {
   return (
-    <aside className="w-64 bg-white/70 backdrop-blur-xl border-r border-pink-100/80 flex flex-col justify-between hidden md:flex min-h-screen sticky top-0 h-screen">
+    <aside className="w-64 bg-emerald-950/90 backdrop-blur-2xl border-r border-emerald-800/40 flex flex-col justify-between hidden md:flex min-h-screen sticky top-0 h-screen text-slate-200">
       <div>
-        {/* Brand Logo with Cherry Blossom Glow */}
-        <div className="h-20 flex items-center px-6 border-b border-rose-100/60 gap-3.5">
-          <div className="p-2.5 bg-gradient-to-br from-rose-400 to-pink-600 text-white rounded-xl shadow-md shadow-rose-200/50 flex items-center justify-center transform transition duration-300 hover:rotate-12">
-            <Flower2 className="w-5 h-5 animate-pulse" />
+        {/* Luxury Brand Logo */}
+        <div className="h-20 flex items-center px-6 border-b border-emerald-800/40 gap-3.5">
+          <div className="p-2.5 bg-gradient-to-br from-emerald-400 to-teal-600 text-slate-950 rounded-xl shadow-lg shadow-emerald-500/20 flex items-center justify-center font-extrabold">
+            <Shield className="w-5 h-5 fill-slate-950" />
           </div>
           <div>
-            <span className="text-xl font-bold bg-gradient-to-r from-rose-600 via-pink-600 to-rose-900 bg-clip-text text-transparent tracking-tight">
-              KnowFin
+            <span className="text-xl font-black tracking-tight text-white flex items-center gap-1">
+              Know<span className="text-emerald-400">Fin</span>
             </span>
-            <span className="block text-[10px] uppercase font-semibold tracking-wider text-rose-400">
-              Sakura Edition
+            <span className="block text-[10px] uppercase font-bold tracking-widest text-emerald-400/80">
+              Enterprise Suite
             </span>
           </div>
         </div>
@@ -45,14 +46,14 @@ export const Sidebar: React.FC = () => {
                 key={item.path}
                 to={item.path}
                 className={({ isActive }) =>
-                  `flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  `flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
                     isActive
-                      ? 'bg-gradient-to-r from-rose-500/15 to-pink-500/10 text-rose-900 font-semibold shadow-xs border border-rose-200/50'
-                      : 'text-slate-600 hover:bg-rose-50/70 hover:text-rose-900 hover:translate-x-1'
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-inner'
+                      : 'text-slate-400 hover:bg-emerald-900/40 hover:text-emerald-200 hover:translate-x-1'
                   }`
                 }
               >
-                <Icon className="w-4 h-4 text-rose-500" />
+                <Icon className="w-4 h-4 text-emerald-400" />
                 {item.name}
               </NavLink>
             );
@@ -60,11 +61,14 @@ export const Sidebar: React.FC = () => {
         </nav>
       </div>
 
-      {/* Footer Branding */}
-      <div className="p-4 border-t border-rose-100/60">
-        <div className="p-3.5 bg-gradient-to-r from-rose-50 to-pink-50 rounded-xl text-xs text-rose-900/80 border border-rose-100/50 shadow-xs flex items-center justify-between">
-          <span className="font-medium">Backend API v1.0</span>
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+      {/* Footer System Status */}
+      <div className="p-4 border-t border-emerald-800/40">
+        <div className="p-3.5 bg-emerald-900/40 rounded-xl text-xs border border-emerald-800/50 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="font-semibold text-slate-300">FastAPI Online</span>
+          </div>
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-sm shadow-emerald-400" />
         </div>
       </div>
     </aside>

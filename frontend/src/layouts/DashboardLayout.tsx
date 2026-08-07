@@ -14,7 +14,7 @@ export const DashboardLayout: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-cherry-glow relative">
+    <div className="flex min-h-screen bg-fintech-mesh relative text-slate-100">
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <Header userEmail={user?.email} onLogout={handleLogout} />
