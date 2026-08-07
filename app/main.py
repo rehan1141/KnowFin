@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from app.core.config import settings
+from app.api.v1.auth import router as auth_router
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -7,6 +8,9 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
+
+# Register Routers
+app.include_router(auth_router, prefix=settings.API_V1_STR)
 
 
 @app.get("/health", tags=["Health Check"])
@@ -19,3 +23,4 @@ def health_check():
         "project": settings.PROJECT_NAME,
         "environment": settings.ENVIRONMENT
     }
+
