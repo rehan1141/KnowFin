@@ -1,211 +1,198 @@
-# KnowFin — Personal Expense Tracker API
+<div align="center">
 
-![Python](https://img.shields.io/badge/Python-3.9-3776AB?style=flat&logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=flat&logo=fastapi&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791?style=flat&logo=postgresql&logoColor=white)
-![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0-D71F00?style=flat)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat&logo=docker&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-green?style=flat)
+# 💎 KnowFin
 
-A production-quality REST API for personal finance management, built with Python, FastAPI, and PostgreSQL. Demonstrates modern backend engineering practices including JWT authentication, SQL aggregation-based analytics, database migrations, structured logging, rate limiting, and Docker containerization.
+### *Production-Grade Personal Expense Tracker API*
 
----
-
-## Features
-
-| Feature | Details |
-|---|---|
-| **Authentication** | JWT Bearer token login & registration with bcrypt password hashing |
-| **Expense Management** | Full CRUD with user-level data isolation |
-| **Pagination & Filtering** | Page-based pagination, date/category filters, sort by any field |
-| **Categories & Budgets** | User-defined expense categories with monthly budget limits |
-| **Analytics Dashboard** | Monthly totals, spending by category (%), budget vs. actual tracking |
-| **Structured Logging** | JSON-formatted logs with timestamps and request paths |
-| **Rate Limiting** | `slowapi`-powered IP-level rate limits (100 req/min global, 5/min on login) |
-| **Error Handling** | Consistent `{"error": {"code", "message", "type"}}` response envelope |
-| **Database Migrations** | Alembic-managed, version-controlled schema migrations |
-| **Docker** | Multi-stage Dockerfile + Docker Compose with health checks |
+[![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
 ---
 
-## Tech Stack
+**KnowFin** is a backend RESTful service engineered with modern backend design principles. It features JWT-based authentication, user-isolated expense management, customizable categories, monthly budgets, aggregate SQL analytics, rate limiting, structured logging, and containerized deployment.
 
-- **Runtime:** Python 3.9
-- **Framework:** FastAPI
-- **Database:** PostgreSQL 15
-- **ORM:** SQLAlchemy 2.0
-- **Migrations:** Alembic
-- **Auth:** JWT (PyJWT) + bcrypt
-- **Rate Limiting:** slowapi
-- **Testing:** pytest + httpx (TestClient)
-- **Container:** Docker + Docker Compose
+[Key Architecture](#-key-architecture) • [Features](#-key-features) • [Tech Stack](#-tech-stack) • [Quickstart](#-quickstart) • [API Documentation](#-api-documentation-summary)
 
 ---
 
-## Project Structure
+</div>
+
+## 🏗️ Key Architecture
+
+KnowFin enforces a strict layered backend architecture to separate concerns and guarantee scalable maintainability:
+
+```mermaid
+graph TD
+    Client[Client / Frontend / Postman] -->|HTTP Requests| Router[FastAPI API Routers /api/v1]
+    Router -->|Validation & Auth| Deps[Auth & Security Dependencies]
+    Router -->|Delegates| Services[Service Layer Business Logic]
+    Services -->|Queries & Aggregations| Models[SQLAlchemy ORM Models]
+    Models -->|Persists| DB[(PostgreSQL Database)]
+```
+
+- **API Layer (`app/api`):** Handles HTTP routing, input validation via Pydantic, and request/response serialization.
+- **Service Layer (`app/services`):** Encapsulates pure business logic, database transactions, and custom query aggregations.
+- **Data Layer (`app/models`):** Manages relational schema definitions, constraints, indices, and foreign key cascades.
+- **Core Platform (`app/core`):** Configures security tokens, structured JSON logging, global exception handling, and IP-level rate limiting.
+
+---
+
+## ⚡ Key Features
+
+- 🔐 **Authentication & Security:** JWT access token flow, bcrypt password hashing, and OAuth2 security schemes.
+- 📦 **Expense Management:** Multi-attribute expense CRUD with strict user-level data isolation.
+- 🔍 **Advanced Querying:** Server-side pagination, date-range & category filtering, and sorting allowlists.
+- 🎯 **Categories & Budgets:** Custom category management with monthly spending targets and FK cascading deletion.
+- 📊 **SQL Analytics Engine:** Single-query aggregate statistics (`SUM`, `COUNT`, `GROUP BY`, `COALESCE`) for total spend, category percentage breakdowns, and budget compliance tracking.
+- 🛡️ **Production Observability:** Structured JSON logging, HTTP request duration middleware, and `slowapi` rate limiting.
+- 🐋 **Docker Containerization:** Multi-stage Dockerfile and Docker Compose orchestration with PostgreSQL health checks.
+
+---
+
+## 🛠️ Tech Stack
+
+| Component | Technology | Description |
+|---|---|---|
+| **Language** | Python 3.9 | Modern async-compatible backend runtime |
+| **Framework** | FastAPI | High-performance, ASGI-compliant REST framework |
+| **Database** | PostgreSQL 15 | Relational database engine |
+| **ORM** | SQLAlchemy 2.0 | Python SQL Toolkit and Object Relational Mapper |
+| **Migrations** | Alembic | Database schema migration management |
+| **Security** | PyJWT + bcrypt | Token generation and password hashing |
+| **Rate Limiting** | slowapi | Token bucket rate limiting middleware |
+| **Testing** | pytest + httpx | Automated unit & integration testing framework |
+| **DevOps** | Docker & Compose | Multi-stage container builds and service orchestration |
+
+---
+
+## 📁 Repository Layout
 
 ```
 KnowFin/
 ├── app/
 │   ├── api/
+│   │   ├── deps.py                  # JWT Auth & DB session dependencies
 │   │   └── v1/
-│   │       ├── auth.py             # Registration & Login endpoints
-│   │       ├── expenses.py         # Expense CRUD endpoints
-│   │       ├── categories_budgets.py # Category & Budget endpoints
-│   │       └── analytics.py        # Analytics endpoints
+│   │       ├── analytics.py         # Dashboard analytics endpoints
+│   │       ├── auth.py              # User registration & JWT login
+│   │       ├── categories_budgets.py# Category & budget endpoints
+│   │       └── expenses.py          # Paginated expense CRUD
 │   ├── core/
-│   │   ├── config.py               # Environment-based settings
-│   │   ├── exceptions.py           # Global exception handlers
-│   │   ├── limiter.py              # Rate limiter configuration
-│   │   └── logging.py              # Structured JSON logger
-│   ├── db/
-│   │   ├── base_class.py           # SQLAlchemy declarative base
-│   │   └── session.py              # DB session management
-│   ├── models/                     # SQLAlchemy ORM models
-│   ├── schemas/                    # Pydantic request/response schemas
-│   ├── services/                   # Business logic layer
-│   └── main.py                     # FastAPI application entrypoint
-├── alembic/                        # Database migrations
-├── tests/                          # API integration tests
+│   │   ├── config.py                # Environment setting loader
+│   │   ├── exceptions.py            # Global exception handlers
+│   │   ├── limiter.py               # Rate limiter configuration
+│   │   └── logging.py               # JSON structured log formatter
+│   ├── db/                          # Base class & session factory
+│   ├── models/                      # SQLAlchemy ORM model definitions
+│   ├── schemas/                     # Pydantic request/response schemas
+│   ├── services/                    # Business & domain service layer
+│   └── main.py                      # Application entrypoint & middleware
+├── alembic/                         # Database migrations directory
 ├── scripts/
-│   └── seed.py                     # Demo data seeder
-├── Dockerfile
-├── docker-compose.yml
-├── .env.example
-├── Makefile
-└── requirements.txt
+│   └── seed.py                      # Sample database seeder
+├── tests/                           # Integration test suite
+├── Dockerfile                       # Production multi-stage build file
+├── docker-compose.yml               # Service orchestration configuration
+├── Makefile                         # Task automation commands
+└── requirements.txt                 # Project dependencies
 ```
 
 ---
 
-## API Endpoints
+## 🚀 Quickstart
 
-### Authentication
-| Method | Endpoint | Description | Auth |
-|---|---|---|---|
-| `POST` | `/api/v1/auth/register` | Create user account | None |
-| `POST` | `/api/v1/auth/login` | Login, receive JWT | None |
-| `GET` | `/api/v1/auth/me` | Get current user profile | Required |
+### Option 1: Docker Compose (Recommended)
 
-### Expenses
-| Method | Endpoint | Description | Auth |
-|---|---|---|---|
-| `POST` | `/api/v1/expenses/` | Create expense | Required |
-| `GET` | `/api/v1/expenses/` | List expenses (paginated, filterable) | Required |
-| `GET` | `/api/v1/expenses/{id}` | Get single expense | Required |
-| `PUT` | `/api/v1/expenses/{id}` | Update expense | Required |
-| `DELETE` | `/api/v1/expenses/{id}` | Delete expense | Required |
+Run the entire application stack (PostgreSQL + FastAPI) with a single command:
 
-**Query Params (GET /expenses/):** `page`, `page_size`, `category`, `start_date`, `end_date`, `sort_by`, `sort_order`
-
-### Categories & Budgets
-| Method | Endpoint | Description | Auth |
-|---|---|---|---|
-| `POST` | `/api/v1/categories/` | Create category | Required |
-| `GET` | `/api/v1/categories/` | List user categories | Required |
-| `POST` | `/api/v1/budgets/` | Set monthly budget | Required |
-| `GET` | `/api/v1/budgets/` | List budgets | Required |
-
-### Analytics
-| Method | Endpoint | Description | Auth |
-|---|---|---|---|
-| `GET` | `/api/v1/analytics/summary` | Monthly total spend & count | Required |
-| `GET` | `/api/v1/analytics/by-category` | Spend breakdown by category (%) | Required |
-| `GET` | `/api/v1/analytics/budget-status` | Budget vs actual spending | Required |
-
-### System
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/health` | API health check |
-| `GET` | `/docs` | Swagger UI |
-| `GET` | `/redoc` | ReDoc UI |
-
----
-
-## Getting Started
-
-### Option A: Local Setup
-
-**1. Clone the repository**
 ```bash
+# 1. Clone the repository
 git clone https://github.com/yourusername/KnowFin.git
 cd KnowFin
-```
 
-**2. Create virtual environment and install dependencies**
-```bash
-python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-**3. Configure environment variables**
-```bash
+# 2. Copy environment file
 cp .env.example .env
-# Edit .env with your PostgreSQL credentials and secret key
-```
 
-**4. Run database migrations**
-```bash
-alembic upgrade head
-```
-
-**5. Seed demo data (optional)**
-```bash
-python scripts/seed.py
-```
-
-**6. Start the API server**
-```bash
-uvicorn app.main:app --reload
-```
-
-Visit: [http://localhost:8000/docs](http://localhost:8000/docs)
-
----
-
-### Option B: Docker Compose (Recommended)
-
-```bash
-cp .env.example .env
+# 3. Spin up services
 docker compose up --build
 ```
 
-This starts:
-- PostgreSQL 15 database with persistent volume
-- FastAPI server (auto-runs Alembic migrations on boot)
-- Health check polling until database is ready
-
-Visit: [http://localhost:8000/docs](http://localhost:8000/docs)
+The server will automatically apply Alembic migrations and start listening at `http://localhost:8000`.
 
 ---
 
-## Running Tests
+### Option 2: Local Development Setup
 
 ```bash
-# Local
-pytest
+# 1. Create and activate virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
 
-# Or with make
-make test
+# 2. Install dependencies
+pip install -r requirements.txt
+
+# 3. Configure environment variables
+cp .env.example .env
+
+# 4. Apply database migrations
+alembic upgrade head
+
+# 5. (Optional) Seed demo data
+python scripts/seed.py
+
+# 6. Run development server
+uvicorn app.main:app --reload
 ```
 
 ---
 
-## Environment Variables
+## 🧪 Testing & Automation
 
-| Variable | Description | Example |
-|---|---|---|
-| `DATABASE_URL` | Full PostgreSQL DSN | `postgresql://user:pass@localhost:5432/knowfin` |
-| `SECRET_KEY` | JWT signing key (min 32 chars) | `a_very_long_and_secure_secret_key_here` |
-| `ALGORITHM` | JWT algorithm | `HS256` |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | JWT expiry | `30` |
-| `ENVIRONMENT` | Runtime environment | `development` / `production` |
+Run the full automated test suite using `make`:
 
-See [`.env.example`](.env.example) for a complete template.
+```bash
+# Run pytest test suite
+make test
+
+# View available Makefile automation commands
+make help
+```
 
 ---
 
-## License
+## 📑 API Documentation Summary
 
-MIT
+Once running, interactive API documentation is accessible at:
+- **Swagger UI:** `http://localhost:8000/docs`
+- **ReDoc:** `http://localhost:8000/redoc`
+
+### Overview of Endpoint Groups
+
+| Group | Method | Path | Description |
+|---|---|---|---|
+| **System** | `GET` | `/health` | Server status & environment check |
+| **Auth** | `POST` | `/api/v1/auth/register` | User registration |
+| **Auth** | `POST` | `/api/v1/auth/login` | JWT login token generation |
+| **Auth** | `GET` | `/api/v1/auth/me` | Fetch authenticated user profile |
+| **Expenses** | `GET` | `/api/v1/expenses/` | Paginated, filterable expense list |
+| **Expenses** | `POST` | `/api/v1/expenses/` | Create a new expense entry |
+| **Expenses** | `GET` | `/api/v1/expenses/{id}` | Fetch single expense details |
+| **Expenses** | `PUT` | `/api/v1/expenses/{id}` | Update existing expense |
+| **Expenses** | `DELETE` | `/api/v1/expenses/{id}` | Delete an expense entry |
+| **Categories** | `GET` | `/api/v1/categories/` | List user categories |
+| **Categories** | `POST` | `/api/v1/categories/` | Create a new user category |
+| **Categories** | `DELETE` | `/api/v1/categories/{id}` | Delete category |
+| **Budgets** | `GET` | `/api/v1/budgets/` | List monthly category budgets |
+| **Budgets** | `POST` | `/api/v1/budgets/` | Set or update category budget |
+| **Analytics** | `GET` | `/api/v1/analytics/summary` | Total monthly spend summary |
+| **Analytics** | `GET` | `/api/v1/analytics/by-category` | Category percentage breakdown |
+| **Analytics** | `GET` | `/api/v1/analytics/budget-status` | Budget compliance & remaining limits |
+
+---
+
+## 📜 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
