@@ -9,23 +9,23 @@ import type {
 
 export const expenseService = {
   list: async (params?: ExpenseFilterParams): Promise<PaginatedExpenses> => {
-    const response = await api.get<PaginatedExpenses>('/expenses/', { params });
-    return response.data;
+    const res = await api.get<PaginatedExpenses>('/expenses/', { params });
+    return res.data;
   },
 
   getById: async (id: number): Promise<Expense> => {
-    const response = await api.get<Expense>(`/expenses/${id}`);
-    return response.data;
+    const res = await api.get<Expense>(`/expenses/${id}`);
+    return res.data;
   },
 
   create: async (data: ExpenseCreate): Promise<Expense> => {
-    const response = await api.post<Expense>('/expenses/', data);
-    return response.data;
+    const res = await api.post<Expense>('/expenses/', data);
+    return res.data;
   },
 
   update: async (id: number, data: ExpenseUpdate): Promise<Expense> => {
-    const response = await api.put<Expense>(`/expenses/${id}`, data);
-    return response.data;
+    const res = await api.put<Expense>(`/expenses/${id}`, data);
+    return res.data;
   },
 
   delete: async (id: number): Promise<void> => {

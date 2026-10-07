@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState } from 'react';
-
-export type Currency = 'INR' | 'USD' | 'EUR';
+import React, { createContext, useContext, useState, useCallback } from 'react';
+import type { Currency } from '../types';
+import { formatCurrency, getCurrencySymbol } from '../utils/formatters';
 
 interface CurrencyContextType {
   currency: Currency;
@@ -13,32 +13,22 @@ const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined
 
 export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currency, setCurrencyState] = useState<Currency>(() => {
-    return (localStorage.getItem('preferred_currency') as Currency) || 'INR';
+    return (localStorage.getItem('preferred_currency') as Currency) || 'EUR';
   });
 
-  const setCurrency = (c: Currency) => {
+  const setCurrency = useCallback((c: Currency) => {
     localStorage.setItem('preferred_currency', c);
     setCurrencyState(c);
-  };
+  }, []);
 
-  const symbolMap: Record<Currency, string> = {
-    INR: '₹',
-    USD: '$',
-    EUR: '€',
-  };
+  const formatAmount = useCallback(
+    (amount: number): string => {
+      return formatCurrency(amount, currency);
+    },
+    [currency]
+  );
 
-  const formatAmount = (amount: number): string => {
-    const localeMap: Record<Currency, string> = {
-      INR: 'en-IN',
-      USD: 'en-US',
-      EUR: 'de-DE',
-    };
-    return new Intl.NumberFormat(localeMap[currency], {
-      style: 'currency',
-      currency: currency,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  };
+  const symbol = getCurrencySymbol(currency);
 
   return (
     <CurrencyContext.Provider
@@ -46,7 +36,7 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         currency,
         setCurrency,
         formatAmount,
-        symbol: symbolMap[currency],
+        symbol,
       }}
     >
       {children}

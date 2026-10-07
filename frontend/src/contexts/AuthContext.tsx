@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import type { User } from '../types';
+import type { User, UserUpdate } from '../types';
 import { authService } from '../services/authService';
 
 interface AuthContextType {
@@ -7,8 +7,10 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, fullName?: string) => Promise<void>;
+  register: (email: string, password: string, fullName?: string, defaultCurrency?: string) => Promise<void>;
+  updateUser: (data: UserUpdate) => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,7 +20,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('access_token'));
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // On mount or token change, fetch the current user profile
   const loadUser = useCallback(async () => {
     if (!token) {
       setIsLoading(false);
@@ -27,8 +28,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const currentUser = await authService.getMe();
       setUser(currentUser);
+      if (currentUser.default_currency) {
+        localStorage.setItem('preferred_currency', currentUser.default_currency);
+      }
     } catch {
-      // Token is invalid or expired — clear it
       localStorage.removeItem('access_token');
       setToken(null);
       setUser(null);
@@ -48,12 +51,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const currentUser = await authService.getMe();
     setUser(currentUser);
+    if (currentUser.default_currency) {
+      localStorage.setItem('preferred_currency', currentUser.default_currency);
+    }
   };
 
-  const register = async (email: string, password: string, fullName?: string) => {
-    await authService.register({ email, password, full_name: fullName });
-    // After successful registration, auto-login
+  const register = async (email: string, password: string, fullName?: string, defaultCurrency: string = 'EUR') => {
+    await authService.register({
+      email,
+      password,
+      full_name: fullName,
+      default_currency: defaultCurrency as any,
+    });
     await login(email, password);
+  };
+
+  const updateUser = async (data: UserUpdate) => {
+    const updated = await authService.updateProfile(data);
+    setUser(updated);
+    if (updated.default_currency) {
+      localStorage.setItem('preferred_currency', updated.default_currency);
+    }
   };
 
   const logout = () => {
@@ -62,8 +80,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
+  const refreshUser = async () => {
+    if (token) {
+      const u = await authService.getMe();
+      setUser(u);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, register, logout }}>
+    <AuthContext.Provider
+      value={{ user, token, isLoading, login, register, updateUser, logout, refreshUser }}
+    >
       {children}
     </AuthContext.Provider>
   );
