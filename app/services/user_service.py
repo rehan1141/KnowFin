@@ -3,8 +3,9 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 
 from app.models.user import User
-from app.schemas.user import UserCreate
+from app.schemas.user import UserCreate, UserUpdate
 from app.core.security import hash_password, verify_password
+from app.services.default_data_service import seed_user_default_data
 
 
 def get_user_by_email(db: Session, email: str) -> Optional[User]:
@@ -23,10 +24,8 @@ def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
 
 
 def create_user(db: Session, user_in: UserCreate) -> User:
-
     """
-    Create a new user in PostgreSQL.
-    Raises HTTP 400 if the email is already registered.
+    Create a new user in PostgreSQL and auto-seed default financial categories and accounts.
     """
     existing_user = get_user_by_email(db, email=user_in.email)
     if existing_user:
@@ -40,8 +39,28 @@ def create_user(db: Session, user_in: UserCreate) -> User:
         hashed_password=hash_password(user_in.password),
         username=user_in.username,
         full_name=user_in.full_name,
+        default_currency=user_in.default_currency or "EUR",
     )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
+
+    # Seed initial accounts and default categories
+    try:
+        seed_user_default_data(db, db_user.id, db_user.default_currency)
+    except Exception:
+        db.rollback()
+
     return db_user
+
+
+def update_user_profile(db: Session, user: User, user_in: UserUpdate) -> User:
+    """Update profile details such as full name and default currency."""
+    if user_in.full_name is not None:
+        user.full_name = user_in.full_name
+    if user_in.default_currency is not None:
+        user.default_currency = user_in.default_currency
+
+    db.commit()
+    db.refresh(user)
+    return user

@@ -14,7 +14,7 @@ from app.schemas.expense import (
 )
 from app.services import expense_service
 
-router = APIRouter(prefix="/expenses", tags=["Expenses"])
+router = APIRouter(prefix="/expenses", tags=["Transactions"])
 
 
 @router.post("/", response_model=ExpenseResponse, status_code=status.HTTP_201_CREATED)
@@ -23,29 +23,36 @@ def create_expense(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Create a new expense for the authenticated user."""
-    return expense_service.create_expense(db, expense_in=expense_in, user_id=current_user.id)
+    """Create a new transaction (expense, income, or transfer) for the user."""
+    tx = expense_service.create_expense(db, expense_in=expense_in, user_id=current_user.id)
+    return expense_service.get_expense_by_id(db, expense_id=tx.id, user_id=current_user.id)
 
 
 @router.get("/", response_model=PaginatedExpenseResponse)
 def read_expenses(
     page: int = Query(1, ge=1, description="Page number"),
-    page_size: int = Query(10, ge=1, le=100, description="Items per page"),
+    page_size: int = Query(15, ge=1, le=100, description="Items per page"),
+    type: Optional[str] = Query(None, description="Filter by transaction type (expense, income, transfer)"),
     category: Optional[str] = Query(None, description="Filter by category"),
-    start_date: Optional[datetime] = Query(None, description="Filter expenses on or after date"),
-    end_date: Optional[datetime] = Query(None, description="Filter expenses on or before date"),
+    account_id: Optional[int] = Query(None, description="Filter by account id"),
+    search: Optional[str] = Query(None, description="Search by title or note text"),
+    start_date: Optional[datetime] = Query(None, description="Filter on or after date"),
+    end_date: Optional[datetime] = Query(None, description="Filter on or before date"),
     sort_by: str = Query("expense_date", description="Field to sort by (expense_date, amount, title)"),
     sort_order: str = Query("desc", pattern="^(asc|desc)$", description="Sort order (asc or desc)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Retrieve expenses owned by the current user with pagination, filtering, and sorting."""
+    """Retrieve transactions with pagination, filtering, and sorting."""
     return expense_service.get_user_expenses(
         db,
         user_id=current_user.id,
         page=page,
         page_size=page_size,
         category=category,
+        transaction_type=type,
+        account_id=account_id,
+        search=search,
         start_date=start_date,
         end_date=end_date,
         sort_by=sort_by,
@@ -59,7 +66,7 @@ def read_expense(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Retrieve a specific expense by ID."""
+    """Retrieve a specific transaction by ID."""
     return expense_service.get_expense_by_id(
         db, expense_id=expense_id, user_id=current_user.id
     )
@@ -72,7 +79,7 @@ def update_expense(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Update a specific expense."""
+    """Update a specific transaction."""
     return expense_service.update_expense(
         db, expense_id=expense_id, expense_in=expense_in, user_id=current_user.id
     )
@@ -84,7 +91,7 @@ def delete_expense(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Delete a specific expense."""
+    """Delete a specific transaction."""
     expense_service.delete_expense(
         db, expense_id=expense_id, user_id=current_user.id
     )

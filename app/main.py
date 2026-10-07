@@ -18,6 +18,8 @@ from app.core.exceptions import (
 )
 from app.api.v1.auth import router as auth_router
 from app.api.v1.expenses import router as expenses_router
+from app.api.v1.accounts import router as accounts_router
+from app.api.v1.recurring import router as recurring_router
 from app.api.v1.categories_budgets import categories_router, budgets_router
 from app.api.v1.analytics import router as analytics_router
 
@@ -28,8 +30,8 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    version="1.0.0",
-    description="Production-quality personal expense tracker REST API.",
+    version="2.0.0",
+    description="Production personal finance management and wealth intelligence REST API.",
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     docs_url="/docs",
     redoc_url="/redoc",
@@ -43,6 +45,7 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "http://localhost:5174",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -80,7 +83,11 @@ async def log_requests(request: Request, call_next):
 
 # ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(auth_router, prefix=settings.API_V1_STR)
+app.include_router(accounts_router, prefix=settings.API_V1_STR)
 app.include_router(expenses_router, prefix=settings.API_V1_STR)
+# Alias /transactions to the same endpoints for clean REST ergonomics
+app.include_router(expenses_router, prefix=f"{settings.API_V1_STR}/transactions", tags=["Transactions"])
+app.include_router(recurring_router, prefix=settings.API_V1_STR)
 app.include_router(categories_router, prefix=settings.API_V1_STR)
 app.include_router(budgets_router, prefix=settings.API_V1_STR)
 app.include_router(analytics_router, prefix=settings.API_V1_STR)
@@ -92,7 +99,7 @@ def health_check():
     """Health check endpoint used by Docker, load balancers, and monitoring systems."""
     return {
         "status": "healthy",
-        "version": "1.0.0",
+        "version": "2.0.0",
         "project": settings.PROJECT_NAME,
         "environment": settings.ENVIRONMENT,
     }
