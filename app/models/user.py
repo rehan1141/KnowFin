@@ -14,14 +14,17 @@ class User(Base):
     username = Column(String, unique=True, index=True, nullable=True)
     full_name = Column(String, nullable=True)
     hashed_password = Column(String, nullable=False)
+    default_currency = Column(String(3), default="EUR", nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
 
-    # ORM Relationship to Expense, Category, Budget
+    # ORM Relationships
     expenses = relationship("Expense", back_populates="owner", cascade="all, delete-orphan")
     categories = relationship("Category", back_populates="user", cascade="all, delete-orphan")
     budgets = relationship("Budget", back_populates="user", cascade="all, delete-orphan")
+    accounts = relationship("Account", back_populates="user", cascade="all, delete-orphan")
+    recurring_transactions = relationship("RecurringTransaction", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self):
-        return f"<User id={self.id} email='{self.email}'>"
+        return f"<User id={self.id} email='{self.email}' name='{self.full_name}'>"

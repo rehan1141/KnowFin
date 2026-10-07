@@ -9,6 +9,13 @@ class UserCreate(BaseModel):
     password: str = Field(..., min_length=8, max_length=100)
     username: Optional[str] = Field(None, min_length=3, max_length=50)
     full_name: Optional[str] = Field(None, max_length=100)
+    default_currency: Optional[str] = Field("EUR", min_length=3, max_length=3)
+
+
+class UserUpdate(BaseModel):
+    """Schema for updating user profile."""
+    full_name: Optional[str] = Field(None, max_length=100)
+    default_currency: Optional[str] = Field(None, min_length=3, max_length=3)
 
 
 class UserResponse(BaseModel):
@@ -17,6 +24,7 @@ class UserResponse(BaseModel):
     email: str
     username: Optional[str] = None
     full_name: Optional[str] = None
+    default_currency: str = "EUR"
     is_active: bool
     created_at: datetime
 
