@@ -1,105 +1,231 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Plus, Trash2, Edit2, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import {
+  Plus,
+  Trash2,
+  Edit2,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  Filter,
+  Tag,
+} from 'lucide-react';
 import { expenseService } from '../services/expenseService';
 import { categoryService } from '../services/categoryService';
-import { ExpenseModal } from '../components/expenses/ExpenseModal';
+import { accountService } from '../services/accountService';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { formatDate } from '../utils/formatters';
-import type { Expense, Category, ExpenseCreate } from '../types';
+import { CategoryIcon } from '../utils/categoryIcons';
+import { TransactionModal } from '../components/transactions/TransactionModal';
+import { CategoryManagerDrawer } from '../components/transactions/CategoryManagerDrawer';
+import type { Expense, Category, Account, ExpenseCreate, TransactionType } from '../types';
 
 export const ExpensesPage: React.FC = () => {
   const { formatAmount } = useCurrency();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
-  const [pageSize] = useState(10);
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [isLoading, setIsLoading] = useState(true);
+  const [pageSize] = useState(15);
+  const [totalIncome, setTotalIncome] = useState(0);
+  const [totalExpenses, setTotalExpenses] = useState(0);
 
-  // Modal State
+  // Filters
+  const [activeTypeTab, setActiveTypeTab] = useState<'all' | 'expense' | 'income'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedAccountId, setSelectedAccountId] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  // Modal / Drawer States
+  const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCategoryDrawerOpen, setIsCategoryDrawerOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
-  const loadExpenses = useCallback(async () => {
+  const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
+      const typeParam = activeTypeTab === 'all' ? undefined : (activeTypeTab as TransactionType);
       const data = await expenseService.list({
         page,
         page_size: pageSize,
+        type: typeParam,
         category: selectedCategory || undefined,
+        account_id: selectedAccountId ? Number(selectedAccountId) : undefined,
+        search: searchQuery.trim() || undefined,
         sort_by: 'expense_date',
         sort_order: sortOrder,
       });
       setExpenses(data.items);
       setTotal(data.total);
       setPages(data.pages);
+      setTotalIncome(Number(data.total_income || 0));
+      setTotalExpenses(Number(data.total_expenses || 0));
     } catch {
-      // API error handled via interceptor/UI
+      // Handled
     } finally {
       setIsLoading(false);
     }
-  }, [page, pageSize, selectedCategory, sortOrder]);
+  }, [page, pageSize, activeTypeTab, selectedCategory, selectedAccountId, searchQuery, sortOrder]);
+
+  const loadMetadata = async () => {
+    try {
+      const [cats, accs] = await Promise.all([categoryService.list(), accountService.list()]);
+      setCategories(cats);
+      setAccounts(accs.accounts);
+    } catch {
+      // Handled
+    }
+  };
 
   useEffect(() => {
-    categoryService.list().then(setCategories).catch(() => {});
+    loadMetadata();
   }, []);
 
   useEffect(() => {
-    loadExpenses();
-  }, [loadExpenses]);
+    loadData();
+  }, [loadData]);
 
   const handleCreate = async (data: ExpenseCreate) => {
     await expenseService.create(data);
-    loadExpenses();
+    await loadData();
   };
 
   const handleUpdate = async (data: ExpenseCreate) => {
     if (editingExpense) {
       await expenseService.update(editingExpense.id, data);
-      loadExpenses();
+      await loadData();
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (confirm('Are you sure you want to delete this expense?')) {
+    if (confirm('Delete this transaction?')) {
       await expenseService.delete(id);
-      loadExpenses();
+      await loadData();
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header & Primary Action */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-6 animate-in fade-in duration-200">
+      {/* Header and Summary Strip */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2 border-b border-[#E8E6DF]">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Expenses</h1>
-          <p className="text-sm text-slate-500 mt-1">Manage and track your daily spending ({total} total)</p>
+          <span className="text-xs font-semibold tracking-wider uppercase text-neutral-500">
+            Activity Ledger
+          </span>
+          <h1 className="text-2xl font-bold tracking-tight text-neutral-900 mt-0.5">
+            Transactions
+          </h1>
+          <div className="flex items-center gap-3 text-xs text-neutral-500 mt-1">
+            <span>{total} transactions</span>
+            <span>·</span>
+            <span className="text-emerald-700 font-semibold">+{formatAmount(totalIncome)} In</span>
+            <span>·</span>
+            <span className="text-neutral-800 font-semibold">-{formatAmount(totalExpenses)} Out</span>
+          </div>
         </div>
-        <button
-          onClick={() => {
-            setEditingExpense(null);
-            setIsModalOpen(true);
-          }}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-rose-500 to-pink-600 text-white text-sm font-medium rounded-xl hover:opacity-95 transition shadow-sm"
-        >
-          <Plus className="w-4 h-4" /> Add Expense
-        </button>
+
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => setIsCategoryDrawerOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-[#E8E6DF] text-neutral-700 text-xs font-semibold rounded-lg hover:bg-neutral-50 transition shadow-2xs"
+          >
+            <Tag className="w-3.5 h-3.5 text-neutral-500" />
+            <span>Manage Categories</span>
+          </button>
+          <button
+            onClick={() => {
+              setEditingExpense(null);
+              setIsModalOpen(true);
+            }}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#164A3A] text-white text-xs font-bold rounded-lg hover:bg-[#12382c] transition shadow-xs"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Transaction</span>
+          </button>
+        </div>
       </div>
 
-      {/* Controls Bar */}
-      <div className="glass-card p-4 rounded-2xl flex flex-wrap gap-4 items-center justify-between shadow-xs">
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-rose-400" />
+      {/* Filter and Control Bar */}
+      <div className="bg-white border border-[#E8E6DF] rounded-2xl p-4 shadow-2xs space-y-3">
+        {/* Top Filter Controls: Type Tabs and Search */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          {/* Transaction Type Filter Pills */}
+          <div className="inline-flex p-1 bg-neutral-100 rounded-lg text-xs font-semibold">
+            <button
+              onClick={() => {
+                setActiveTypeTab('all');
+                setPage(1);
+              }}
+              className={`px-3 py-1.5 rounded-md transition ${
+                activeTypeTab === 'all'
+                  ? 'bg-white text-neutral-900 shadow-2xs font-bold'
+                  : 'text-neutral-500 hover:text-neutral-900'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => {
+                setActiveTypeTab('expense');
+                setPage(1);
+              }}
+              className={`px-3 py-1.5 rounded-md transition ${
+                activeTypeTab === 'expense'
+                  ? 'bg-white text-rose-700 shadow-2xs font-bold'
+                  : 'text-neutral-500 hover:text-neutral-900'
+              }`}
+            >
+              Expenses
+            </button>
+            <button
+              onClick={() => {
+                setActiveTypeTab('income');
+                setPage(1);
+              }}
+              className={`px-3 py-1.5 rounded-md transition ${
+                activeTypeTab === 'income'
+                  ? 'bg-white text-[#164A3A] shadow-2xs font-bold'
+                  : 'text-neutral-500 hover:text-neutral-900'
+              }`}
+            >
+              Income
+            </button>
+          </div>
+
+          {/* Search Box */}
+          <div className="relative flex-1 max-w-sm">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+            <input
+              type="text"
+              placeholder="Search descriptions or notes..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setPage(1);
+              }}
+              className="w-full pl-9 pr-3.5 py-1.5 border border-[#E8E6DF] rounded-lg text-xs text-neutral-900 outline-none"
+            />
+          </div>
+        </div>
+
+        {/* Bottom Filter Controls: Category, Account & Sort */}
+        <div className="flex flex-wrap items-center gap-2.5 pt-2 border-t border-[#E8E6DF] text-xs">
+          <div className="flex items-center gap-1.5">
+            <Filter className="w-3.5 h-3.5 text-neutral-400" />
+            <span className="text-neutral-500 font-medium">Filter:</span>
+          </div>
+
+          {/* Category Select */}
           <select
             value={selectedCategory}
             onChange={(e) => {
               setSelectedCategory(e.target.value);
               setPage(1);
             }}
-            className="px-3 py-1.5 border border-rose-200/80 rounded-xl text-sm bg-white/80 outline-none"
+            className="px-2.5 py-1.5 border border-[#E8E6DF] rounded-lg bg-white text-neutral-800 text-xs outline-none"
           >
             <option value="">All Categories</option>
             {categories.map((c) => (
@@ -108,98 +234,145 @@ export const ExpensesPage: React.FC = () => {
               </option>
             ))}
           </select>
-        </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-slate-500">Sort Date:</span>
+          {/* Account Select */}
+          <select
+            value={selectedAccountId}
+            onChange={(e) => {
+              setSelectedAccountId(e.target.value);
+              setPage(1);
+            }}
+            className="px-2.5 py-1.5 border border-[#E8E6DF] rounded-lg bg-white text-neutral-800 text-xs outline-none"
+          >
+            <option value="">All Accounts</option>
+            {accounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
+
+          {/* Sort Order Toggle */}
           <button
             onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
-            className="px-3 py-1.5 border border-rose-200/80 rounded-xl text-sm bg-white/80 hover:bg-rose-50 font-medium text-rose-900"
+            className="ml-auto px-2.5 py-1.5 border border-[#E8E6DF] rounded-lg bg-white text-neutral-600 hover:text-neutral-900 font-medium transition"
           >
             {sortOrder === 'desc' ? 'Newest First' : 'Oldest First'}
           </button>
         </div>
       </div>
 
-      {/* Expenses Table */}
-      <div className="glass-card rounded-2xl shadow-xs overflow-hidden">
+      {/* Transactions Ledger List */}
+      <div className="bg-white border border-[#E8E6DF] rounded-2xl overflow-hidden shadow-2xs">
         {isLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-500"></div>
+          <div className="flex items-center justify-center py-24 text-neutral-400">
+            <div className="w-6 h-6 rounded-full border-2 border-neutral-300 border-t-[#164A3A] animate-spin mr-2" />
+            <span className="text-xs">Loading ledger...</span>
           </div>
         ) : expenses.length === 0 ? (
-          <div className="text-center py-16 text-slate-500">
-            <p>No expenses found.</p>
+          <div className="text-center py-20 text-neutral-400 text-xs">
+            <p className="text-sm font-semibold text-neutral-700 mb-1">No transactions match.</p>
+            <p>Try clearing your search filters or add a new transaction.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-rose-50/50 border-b border-rose-100 text-xs font-bold text-rose-900/60 uppercase tracking-wider">
-                <tr>
-                  <th className="px-6 py-3.5">Title</th>
-                  <th className="px-6 py-3.5">Category</th>
-                  <th className="px-6 py-3.5">Date</th>
-                  <th className="px-6 py-3.5 text-right">Amount</th>
-                  <th className="px-6 py-3.5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-rose-50">
-                {expenses.map((e) => (
-                  <tr key={e.id} className="hover:bg-rose-50/40 transition">
-                    <td className="px-6 py-4 font-semibold text-slate-900">{e.title}</td>
-                    <td className="px-6 py-4 text-slate-600">
-                      <span className="inline-block bg-rose-100/70 text-rose-900 px-2.5 py-1 rounded-lg text-xs font-medium border border-rose-200/50">
-                        {e.category || 'Uncategorized'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-slate-500 text-xs">{formatDate(e.expense_date)}</td>
-                    <td className="px-6 py-4 text-right font-bold text-slate-900">
-                      {formatAmount(e.amount)}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => {
-                            setEditingExpense(e);
-                            setIsModalOpen(true);
-                          }}
-                          className="p-1 text-slate-400 hover:text-rose-700 rounded"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(e.id)}
-                          className="p-1 text-slate-400 hover:text-rose-600 rounded"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+          <div className="divide-y divide-[#E8E6DF]">
+            {expenses.map((tx) => {
+              const isIncome = tx.transaction_type === 'income';
+              return (
+                <div
+                  key={tx.id}
+                  className="p-4 flex items-center justify-between hover:bg-neutral-50/60 transition group"
+                >
+                  {/* Left: Icon and Details */}
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0"
+                      style={{ backgroundColor: tx.category_color || (isIncome ? '#059669' : '#1F6B50') }}
+                    >
+                      <CategoryIcon iconName={tx.category_icon} className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-neutral-900 truncate">
+                          {tx.title}
+                        </span>
+                        {tx.notes && (
+                          <span className="text-[11px] text-neutral-400 truncate hidden sm:inline">
+                            · {tx.notes}
+                          </span>
+                        )}
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      <div className="flex items-center gap-2 text-xs text-neutral-500 mt-0.5">
+                        <span className="font-medium text-neutral-700">{tx.category}</span>
+                        {tx.subcategory_name && (
+                          <>
+                            <span>/</span>
+                            <span>{tx.subcategory_name}</span>
+                          </>
+                        )}
+                        <span>·</span>
+                        <span>{tx.account_name || 'Main Wallet'}</span>
+                        <span>·</span>
+                        <span>{formatDate(tx.expense_date)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right: Amount & Actions */}
+                  <div className="flex items-center gap-4 shrink-0 pl-3">
+                    <span
+                      className={`text-base font-extrabold tracking-tight ${
+                        isIncome ? 'text-emerald-700' : 'text-neutral-900'
+                      }`}
+                    >
+                      {isIncome ? '+' : '-'}
+                      {formatAmount(tx.amount)}
+                    </span>
+
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                      <button
+                        onClick={() => {
+                          setEditingExpense(tx);
+                          setIsModalOpen(true);
+                        }}
+                        className="p-1.5 text-neutral-400 hover:text-neutral-800 rounded-lg"
+                        title="Edit"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(tx.id)}
+                        className="p-1.5 text-neutral-400 hover:text-rose-600 rounded-lg"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
 
-        {/* Pagination Footer */}
+        {/* Pagination Bar */}
         {pages > 1 && (
-          <div className="px-6 py-4 border-t border-rose-100 flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">
-              Page {page} of {pages}
+          <div className="px-6 py-3.5 border-t border-[#E8E6DF] flex items-center justify-between text-xs text-neutral-600">
+            <span>
+              Page {page} of {pages} ({total} items)
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <button
                 disabled={page <= 1}
                 onClick={() => setPage(page - 1)}
-                className="p-1.5 border border-rose-200/80 rounded-lg bg-white hover:bg-rose-50 disabled:opacity-40"
+                className="p-1.5 border border-[#E8E6DF] rounded-lg bg-white hover:bg-neutral-50 disabled:opacity-40"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <button
                 disabled={page >= pages}
                 onClick={() => setPage(page + 1)}
-                className="p-1.5 border border-rose-200/80 rounded-lg bg-white hover:bg-rose-50 disabled:opacity-40"
+                className="p-1.5 border border-[#E8E6DF] rounded-lg bg-white hover:bg-neutral-50 disabled:opacity-40"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -208,13 +381,21 @@ export const ExpensesPage: React.FC = () => {
         )}
       </div>
 
-      {/* Modal */}
-      <ExpenseModal
+      {/* Transaction Modal and Category Drawer */}
+      <TransactionModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={editingExpense ? handleUpdate : handleCreate}
         initialData={editingExpense}
-        title={editingExpense ? 'Edit Expense' : 'Add New Expense'}
+        defaultType="expense"
+      />
+      <CategoryManagerDrawer
+        isOpen={isCategoryDrawerOpen}
+        onClose={() => setIsCategoryDrawerOpen(false)}
+        onCategoryChange={() => {
+          loadMetadata();
+          loadData();
+        }}
       />
     </div>
   );
