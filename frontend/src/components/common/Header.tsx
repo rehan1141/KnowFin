@@ -45,32 +45,13 @@ export const Header: React.FC = () => {
             </span>
             <span className="font-semibold text-neutral-900 tracking-tight text-base">KnowFin</span>
           </div>
-          <div className="hidden md:flex items-center gap-2 text-xs text-neutral-500 font-medium">
-            <span>Personal Wealth</span>
-            <span>·</span>
-            <span className="text-neutral-700">Active</span>
+          <div className="hidden md:block text-xs text-neutral-400 font-medium">
+            <span>Daily Ledger</span>
           </div>
         </div>
 
-        {/* Right Section: Currency Switcher & User Profile */}
+        {/* Right Section: Clean User Menu */}
         <div className="flex items-center gap-3">
-          {/* Quick Currency Selector */}
-          <div className="flex items-center bg-white border border-[#E8E6DF] rounded-lg p-0.5 shadow-2xs">
-            {(['EUR', 'USD', 'INR'] as Currency[]).map((c) => (
-              <button
-                key={c}
-                onClick={() => handleCurrencyChange(c)}
-                className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all ${
-                  currency === c
-                    ? 'bg-[#164A3A] text-white shadow-2xs font-semibold'
-                    : 'text-neutral-600 hover:text-neutral-900'
-                }`}
-              >
-                {c === 'EUR' ? '€ EUR' : c === 'USD' ? '$ USD' : '₹ INR'}
-              </button>
-            ))}
-          </div>
-
           {/* Profile Trigger Button */}
           <button
             onClick={() => {
@@ -78,11 +59,12 @@ export const Header: React.FC = () => {
               setIsProfileOpen(true);
             }}
             className="flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-lg border border-[#E8E6DF] bg-white hover:bg-neutral-50 transition cursor-pointer shadow-2xs"
+            aria-label="User menu"
           >
             <div className="w-6 h-6 rounded-full bg-[#164A3A] text-white flex items-center justify-center text-xs font-semibold">
               {initial}
             </div>
-            <span className="text-sm font-medium text-neutral-900">{displayName}</span>
+            <span className="text-xs font-semibold text-neutral-900">{displayName}</span>
             <ChevronDown className="w-3.5 h-3.5 text-neutral-400" />
           </button>
         </div>

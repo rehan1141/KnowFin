@@ -5,7 +5,7 @@ import { formatCurrency, getCurrencySymbol } from '../utils/formatters';
 interface CurrencyContextType {
   currency: Currency;
   setCurrency: (c: Currency) => void;
-  formatAmount: (amount: number) => string;
+  formatAmount: (amount: number | string | null | undefined) => string;
   symbol: string;
 }
 
@@ -22,7 +22,7 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, []);
 
   const formatAmount = useCallback(
-    (amount: number): string => {
+    (amount: number | string | null | undefined): string => {
       return formatCurrency(amount, currency);
     },
     [currency]

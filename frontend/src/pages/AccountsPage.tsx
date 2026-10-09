@@ -72,13 +72,13 @@ export const AccountsPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2 border-b border-[#E8E6DF]">
         <div>
           <span className="text-xs font-semibold tracking-wider uppercase text-neutral-500">
-            Holdings & Liquidity
+            Accounts & Wallets
           </span>
           <h1 className="text-2xl font-bold tracking-tight text-neutral-900 mt-0.5">
             Accounts
           </h1>
           <p className="text-xs text-neutral-500 mt-1">
-            Manage your banks, cash wallets, credit lines, and savings
+            Manage your banks, cash wallets, and savings
           </p>
         </div>
 
@@ -98,7 +98,7 @@ export const AccountsPage: React.FC = () => {
       <div className="bg-white border border-[#E8E6DF] rounded-2xl p-6 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
-            Total Available Liquidity
+            Total Available Balance
           </span>
           <div className="text-3xl font-black text-neutral-900 tracking-tight mt-1">
             {formatAmount(totalBalance)}

@@ -1,7 +1,18 @@
 import type { Currency } from '../types';
 
-export const formatCurrency = (amount: number, currency: Currency = 'EUR'): string => {
-  const safeAmount = Number.isFinite(amount) ? amount : 0;
+export const formatCurrency = (
+  amount: number | string | null | undefined,
+  currency: Currency = 'EUR'
+): string => {
+  let num: number;
+  if (typeof amount === 'number') {
+    num = amount;
+  } else if (typeof amount === 'string') {
+    num = parseFloat(amount.replace(/[^0-9.-]/g, ''));
+  } else {
+    num = 0;
+  }
+  const safeAmount = Number.isFinite(num) ? num : 0;
   const localeMap: Record<Currency, string> = {
     EUR: 'de-DE',
     USD: 'en-US',

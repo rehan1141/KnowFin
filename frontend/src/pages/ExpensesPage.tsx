@@ -32,7 +32,7 @@ export const ExpensesPage: React.FC = () => {
   const [totalExpenses, setTotalExpenses] = useState(0);
 
   // Filters
-  const [activeTypeTab, setActiveTypeTab] = useState<'all' | 'expense' | 'income'>('all');
+  const [activeTypeTab, setActiveTypeTab] = useState<'all' | 'expense' | 'income' | 'transfer'>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedAccountId, setSelectedAccountId] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -193,6 +193,19 @@ export const ExpensesPage: React.FC = () => {
             >
               Income
             </button>
+            <button
+              onClick={() => {
+                setActiveTypeTab('transfer');
+                setPage(1);
+              }}
+              className={`px-3 py-1.5 rounded-md transition ${
+                activeTypeTab === 'transfer'
+                  ? 'bg-white text-neutral-900 shadow-2xs font-bold'
+                  : 'text-neutral-500 hover:text-neutral-900'
+              }`}
+            >
+              Transfers
+            </button>
           </div>
 
           {/* Search Box */}
@@ -278,6 +291,7 @@ export const ExpensesPage: React.FC = () => {
           <div className="divide-y divide-[#E8E6DF]">
             {expenses.map((tx) => {
               const isIncome = tx.transaction_type === 'income';
+              const isTransfer = tx.transaction_type === 'transfer';
               return (
                 <div
                   key={tx.id}
@@ -287,7 +301,11 @@ export const ExpensesPage: React.FC = () => {
                   <div className="flex items-center gap-3.5 min-w-0">
                     <div
                       className="w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0"
-                      style={{ backgroundColor: tx.category_color || (isIncome ? '#059669' : '#1F6B50') }}
+                      style={{
+                        backgroundColor:
+                          tx.category_color ||
+                          (isIncome ? '#059669' : isTransfer ? '#475569' : '#1F6B50'),
+                      }}
                     >
                       <CategoryIcon iconName={tx.category_icon} className="w-5 h-5" />
                     </div>
@@ -322,10 +340,14 @@ export const ExpensesPage: React.FC = () => {
                   <div className="flex items-center gap-4 shrink-0 pl-3">
                     <span
                       className={`text-base font-extrabold tracking-tight ${
-                        isIncome ? 'text-emerald-700' : 'text-neutral-900'
+                        isIncome
+                          ? 'text-emerald-700'
+                          : isTransfer
+                          ? 'text-neutral-700'
+                          : 'text-neutral-900'
                       }`}
                     >
-                      {isIncome ? '+' : '-'}
+                      {isIncome ? '+' : isTransfer ? '↔ ' : '-'}
                       {formatAmount(tx.amount)}
                     </span>
 

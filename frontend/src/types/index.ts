@@ -37,10 +37,10 @@ export interface Account {
   name: string;
   account_type: AccountType;
   currency: Currency;
-  initial_balance: number;
-  current_balance: number;
-  total_income: number;
-  total_expenses: number;
+  initial_balance: number | string;
+  current_balance: number | string;
+  total_income: number | string;
+  total_expenses: number | string;
   is_active: boolean;
   created_at: string;
   updated_at?: string;
@@ -63,7 +63,7 @@ export interface AccountUpdate {
 
 export interface AccountListResponse {
   accounts: Account[];
-  total_balance: number;
+  total_balance: number | string;
 }
 
 // Transaction / Expense Schemas
@@ -73,7 +73,7 @@ export interface Expense {
   id: number;
   user_id: number;
   title: string;
-  amount: number;
+  amount: number | string;
   transaction_type: TransactionType;
   category: string;
   category_id?: number | null;
@@ -117,8 +117,8 @@ export interface PaginatedExpenses {
   page: number;
   page_size: number;
   pages: number;
-  total_income?: number;
-  total_expenses?: number;
+  total_income?: number | string;
+  total_expenses?: number | string;
 }
 
 export interface ExpenseFilterParams {
@@ -261,15 +261,15 @@ export interface UpcomingSummaryResponse {
 export interface MonthlySummary {
   month: number;
   year: number;
-  total_income: number;
-  total_spent: number;
-  net_savings: number;
+  total_income: number | string;
+  total_spent: number | string;
+  net_savings: number | string;
   savings_rate: number;
   total_transactions: number;
-  fixed_expenses: number;
-  variable_expenses: number;
-  average_daily_spending: number;
-  total_balance: number;
+  fixed_expenses: number | string;
+  variable_expenses: number | string;
+  average_daily_spending: number | string;
+  total_balance: number | string;
 }
 
 export interface CategorySpending {
@@ -277,7 +277,7 @@ export interface CategorySpending {
   category: string;
   icon: string;
   color: string;
-  total_spent: number;
+  total_spent: number | string;
   percentage: number;
   transaction_count: number;
 }

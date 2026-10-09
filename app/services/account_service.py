@@ -33,9 +33,35 @@ def get_account_balance(db: Session, account_id: int, user_id: int) -> Dict[str,
         or Decimal("0.00")
     )
 
+    transfers_out = (
+        db.query(func.coalesce(func.sum(Expense.amount), Decimal("0.00")))
+        .filter(
+            Expense.user_id == user_id,
+            Expense.account_id == account_id,
+            Expense.transaction_type == "transfer",
+            Expense.title.ilike("Transfer to%"),
+        )
+        .scalar()
+        or Decimal("0.00")
+    )
+
+    transfers_in = (
+        db.query(func.coalesce(func.sum(Expense.amount), Decimal("0.00")))
+        .filter(
+            Expense.user_id == user_id,
+            Expense.account_id == account_id,
+            Expense.transaction_type == "transfer",
+            Expense.title.ilike("Transfer from%"),
+        )
+        .scalar()
+        or Decimal("0.00")
+    )
+
     return {
         "income": income,
         "expenses": expenses,
+        "transfers_in": transfers_in,
+        "transfers_out": transfers_out,
     }
 
 
@@ -53,7 +79,13 @@ def list_user_accounts(db: Session, user_id: int) -> Dict[str, Any]:
 
     for acc in accounts:
         stats = get_account_balance(db, acc.id, user_id)
-        current_bal = acc.initial_balance + stats["income"] - stats["expenses"]
+        current_bal = (
+            acc.initial_balance
+            + stats["income"]
+            - stats["expenses"]
+            + stats.get("transfers_in", Decimal("0.00"))
+            - stats.get("transfers_out", Decimal("0.00"))
+        )
         if acc.is_active:
             total_balance += current_bal
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   BarChart3,
-  PieChart as PieIcon,
+  Plus,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -10,32 +10,19 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  PieChart as RechartsPieChart,
-  Pie,
-  Cell,
   CartesianGrid,
 } from 'recharts';
 import { analyticsService } from '../services/analyticsService';
+import { expenseService } from '../services/expenseService';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { CategoryIcon } from '../utils/categoryIcons';
+import { TransactionModal } from '../components/transactions/TransactionModal';
 import type {
   MonthlySummary,
   CategorySpendingResponse,
   CashFlowResponse,
+  ExpenseCreate,
 } from '../types';
-
-const CHART_PALETTE = [
-  '#164A3A',
-  '#1F6B50',
-  '#2E7D5B',
-  '#5C7C64',
-  '#D97706',
-  '#DC2626',
-  '#3B82F6',
-  '#8B5CF6',
-  '#0D9488',
-  '#6B7280',
-];
 
 export const AnalyticsPage: React.FC = () => {
   const { formatAmount } = useCurrency();
@@ -47,6 +34,7 @@ export const AnalyticsPage: React.FC = () => {
   const [categoryData, setCategoryData] = useState<CategorySpendingResponse | null>(null);
   const [cashFlowData, setCashFlowData] = useState<CashFlowResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isTxModalOpen, setIsTxModalOpen] = useState(false);
 
   const loadAnalytics = useCallback(async () => {
     setIsLoading(true);
@@ -70,41 +58,61 @@ export const AnalyticsPage: React.FC = () => {
     loadAnalytics();
   }, [loadAnalytics]);
 
+  const handleCreateTx = async (data: ExpenseCreate) => {
+    await expenseService.create(data);
+    await loadAnalytics();
+  };
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-28 text-neutral-400 text-xs">
         <div className="w-6 h-6 rounded-full border-2 border-neutral-300 border-t-[#164A3A] animate-spin mb-2" />
-        <span>Computing financial intelligence...</span>
+        <span>Loading monthly analysis...</span>
       </div>
     );
   }
 
-  const chartCategories = categoryData?.categories.map((c) => ({
-    name: c.category,
-    amount: Number(c.total_spent),
-    percentage: c.percentage,
-    icon: c.icon,
-  })) || [];
+  const totalIncome = Number(summary?.total_income || 0);
+  const totalSpent = Number(summary?.total_spent || 0);
+  const netSavings = Number(summary?.net_savings || 0);
+  const savingsRate = summary?.savings_rate || 0;
+  const totalTransactions = Number(summary?.total_transactions || 0);
+  const fixedExpenses = Number(summary?.fixed_expenses || 0);
+  const variableExpenses = Number(summary?.variable_expenses || 0);
+  const avgDailySpending = Number(summary?.average_daily_spending || 0);
 
-  const flowPoints = cashFlowData?.points.map((p) => ({
-    date: p.date.slice(5), // MM-DD
-    Income: Number(p.income),
-    Expense: Number(p.expense),
-  })) || [];
+  const chartCategories =
+    categoryData?.categories.map((c) => ({
+      name: c.category,
+      amount: Number(c.total_spent),
+      percentage: Number(c.percentage),
+      icon: c.icon,
+      color: c.color,
+      count: c.transaction_count,
+    })) || [];
+
+  const flowPoints =
+    cashFlowData?.points.map((p) => ({
+      date: p.date.slice(5), // MM-DD
+      Income: Number(p.income),
+      Expense: Number(p.expense),
+    })) || [];
+
+  const hasActivity = totalTransactions > 0 || totalIncome > 0 || totalSpent > 0;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
-      {/* Header and Controls */}
+    <div className="space-y-6 animate-in fade-in duration-200 max-w-5xl mx-auto">
+      {/* Header and Period Selector */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2 border-b border-[#E8E6DF]">
         <div>
           <span className="text-xs font-semibold tracking-wider uppercase text-neutral-500">
-            Intelligence & Reports
+            Reports & Review
           </span>
           <h1 className="text-2xl font-bold tracking-tight text-neutral-900 mt-0.5">
-            Financial Analytics
+            Monthly Analytics
           </h1>
           <p className="text-xs text-neutral-500 mt-1">
-            Cash-flow trajectory, capital distribution, and savings efficiency
+            Understanding your cash flow, spending habits, and net savings
           </p>
         </div>
 
@@ -136,227 +144,222 @@ export const AnalyticsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Top Financial Health Matrix */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white border border-[#E8E6DF] rounded-2xl p-5 shadow-2xs">
-          <span className="text-[11px] font-semibold uppercase text-neutral-500 block">
-            Total Inflow
-          </span>
-          <div className="text-2xl font-black text-emerald-700 tracking-tight mt-1">
-            +{formatAmount(summary?.total_income || 0)}
-          </div>
-          <span className="text-[10px] text-neutral-400 mt-1 block">Income this period</span>
-        </div>
-
-        <div className="bg-white border border-[#E8E6DF] rounded-2xl p-5 shadow-2xs">
-          <span className="text-[11px] font-semibold uppercase text-neutral-500 block">
-            Total Outflow
-          </span>
-          <div className="text-2xl font-black text-neutral-900 tracking-tight mt-1">
-            -{formatAmount(summary?.total_spent || 0)}
-          </div>
-          <span className="text-[10px] text-neutral-400 mt-1 block">
-            Avg {formatAmount(summary?.average_daily_spending || 0)} / day
-          </span>
-        </div>
-
-        <div className="bg-white border border-[#E8E6DF] rounded-2xl p-5 shadow-2xs">
-          <span className="text-[11px] font-semibold uppercase text-neutral-500 block">
-            Net Savings
-          </span>
-          <div
-            className={`text-2xl font-black tracking-tight mt-1 ${
-              (summary?.net_savings || 0) >= 0 ? 'text-[#164A3A]' : 'text-rose-600'
-            }`}
+      {!hasActivity ? (
+        <div className="bg-white border border-[#E8E6DF] rounded-2xl p-12 text-center shadow-2xs">
+          <BarChart3 className="w-10 h-10 text-neutral-300 mx-auto mb-3" />
+          <h3 className="text-base font-bold text-neutral-800 mb-1">
+            No transactions recorded for this month
+          </h3>
+          <p className="text-xs text-neutral-500 max-w-md mx-auto mb-5">
+            Add a few transactions and KnowFin will show your cash flow, spending categories, and savings rate.
+          </p>
+          <button
+            onClick={() => setIsTxModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#164A3A] text-white text-xs font-bold rounded-lg hover:bg-[#12382c] transition shadow-xs"
           >
-            {(summary?.net_savings || 0) >= 0 ? '+' : ''}
-            {formatAmount(summary?.net_savings || 0)}
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add transaction</span>
+          </button>
+        </div>
+      ) : (
+        <>
+          {/* 1. Core Financial Questions: Inflow, Outflow, Net, Rate */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-white border border-[#E8E6DF] rounded-2xl p-5 shadow-2xs">
+              <span className="text-[11px] font-semibold uppercase text-neutral-500 block">
+                Total Inflow
+              </span>
+              <div className="text-2xl font-black text-emerald-700 tracking-tight mt-1">
+                +{formatAmount(totalIncome)}
+              </div>
+              <span className="text-[10px] text-neutral-400 mt-1 block">Income earned</span>
+            </div>
+
+            <div className="bg-white border border-[#E8E6DF] rounded-2xl p-5 shadow-2xs">
+              <span className="text-[11px] font-semibold uppercase text-neutral-500 block">
+                Total Outflow
+              </span>
+              <div className="text-2xl font-black text-neutral-900 tracking-tight mt-1">
+                -{formatAmount(totalSpent)}
+              </div>
+              <span className="text-[10px] text-neutral-400 mt-1 block">
+                Avg {formatAmount(avgDailySpending)} / day
+              </span>
+            </div>
+
+            <div className="bg-white border border-[#E8E6DF] rounded-2xl p-5 shadow-2xs">
+              <span className="text-[11px] font-semibold uppercase text-neutral-500 block">
+                Net Savings
+              </span>
+              <div
+                className={`text-2xl font-black tracking-tight mt-1 ${
+                  netSavings >= 0 ? 'text-[#164A3A]' : 'text-rose-600'
+                }`}
+              >
+                {netSavings >= 0 ? '+' : ''}
+                {formatAmount(netSavings)}
+              </div>
+              <span className="text-[10px] text-neutral-400 mt-1 block">Saved this month</span>
+            </div>
+
+            <div className="bg-white border border-[#E8E6DF] rounded-2xl p-5 shadow-2xs">
+              <span className="text-[11px] font-semibold uppercase text-neutral-500 block">
+                Savings Rate
+              </span>
+              <div className="text-2xl font-black text-[#164A3A] tracking-tight mt-1">
+                {totalIncome > 0 ? `${savingsRate}%` : '—'}
+              </div>
+              <span className="text-[10px] text-neutral-400 mt-1 block">
+                {totalIncome > 0 ? 'Net income retained' : 'No income recorded'}
+              </span>
+            </div>
           </div>
-          <span className="text-[10px] text-neutral-400 mt-1 block">Saved this month</span>
-        </div>
 
-        <div className="bg-white border border-[#E8E6DF] rounded-2xl p-5 shadow-2xs">
-          <span className="text-[11px] font-semibold uppercase text-neutral-500 block">
-            Savings Rate
-          </span>
-          <div className="text-2xl font-black text-[#164A3A] tracking-tight mt-1">
-            {summary?.savings_rate || 0}%
-          </div>
-          <span className="text-[10px] text-neutral-400 mt-1 block">Net income retained</span>
-        </div>
-      </div>
-
-      {/* Fixed vs Variable Spending Split */}
-      <div className="bg-white border border-[#E8E6DF] rounded-2xl p-5 shadow-2xs grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <span className="text-xs font-semibold text-neutral-500 block">
-            Fixed Commitments (Subscriptions & Recurring)
-          </span>
-          <span className="text-xl font-bold text-neutral-900 mt-0.5 block">
-            {formatAmount(summary?.fixed_expenses || 0)}
-          </span>
-          <span className="text-[11px] text-neutral-400">
-            Predictable recurring baseline
-          </span>
-        </div>
-        <div>
-          <span className="text-xs font-semibold text-neutral-500 block">
-            Variable Discretionary Spending
-          </span>
-          <span className="text-xl font-bold text-neutral-900 mt-0.5 block">
-            {formatAmount(summary?.variable_expenses || 0)}
-          </span>
-          <span className="text-[11px] text-neutral-400">
-            Day-to-day dynamic expenses
-          </span>
-        </div>
-      </div>
-
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Daily Cash Flow Bar Chart */}
-        <div className="lg:col-span-7 bg-white border border-[#E8E6DF] rounded-2xl p-6 shadow-2xs">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-neutral-900 flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-[#164A3A]" />
-              <span>Daily Cash Flow</span>
-            </h3>
-            <span className="text-xs text-neutral-400">Income vs Expenses</span>
+          {/* 2. Spending Split: Fixed Commitments vs Variable Expenses */}
+          <div className="bg-white border border-[#E8E6DF] rounded-2xl p-5 shadow-2xs grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <span className="text-xs font-semibold text-neutral-500 block">
+                Fixed Commitments (Recurring Rules)
+              </span>
+              <span className="text-xl font-bold text-neutral-900 mt-0.5 block">
+                {formatAmount(fixedExpenses)}
+              </span>
+              <span className="text-[11px] text-neutral-400">
+                Predictable monthly subscriptions & bills
+              </span>
+            </div>
+            <div>
+              <span className="text-xs font-semibold text-neutral-500 block">
+                Variable Spending
+              </span>
+              <span className="text-xl font-bold text-neutral-900 mt-0.5 block">
+                {formatAmount(variableExpenses)}
+              </span>
+              <span className="text-[11px] text-neutral-400">
+                Day-to-day dynamic expenses
+              </span>
+            </div>
           </div>
 
-          <div className="h-64 w-full">
+          {/* 3. Daily Cash Flow Chart */}
+          <div className="bg-white border border-[#E8E6DF] rounded-2xl p-6 shadow-2xs">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-sm font-bold text-neutral-900">Cash Flow Timeline</h3>
+                <p className="text-[11px] text-neutral-500">Daily income received vs expenses paid</p>
+              </div>
+              <div className="flex items-center gap-4 text-xs">
+                <span className="flex items-center gap-1.5 text-neutral-600">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block" />
+                  Income
+                </span>
+                <span className="flex items-center gap-1.5 text-neutral-600">
+                  <span className="w-2.5 h-2.5 rounded-full bg-neutral-900 inline-block" />
+                  Expense
+                </span>
+              </div>
+            </div>
+
             {flowPoints.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-xs text-neutral-400">
-                No activity recorded for this period.
+              <div className="text-center py-12 text-xs text-neutral-400">
+                No daily cash flow data for this period.
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={flowPoints} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#F0EFEA" vertical={false} />
-                  <XAxis dataKey="date" stroke="#9CA3AF" fontSize={11} tickLine={false} />
-                  <YAxis stroke="#9CA3AF" fontSize={11} tickLine={false} />
-                  <Tooltip
-                    formatter={(val: any) => [formatAmount(Number(val)), '']}
-                    contentStyle={{
-                      backgroundColor: '#FFFFFF',
-                      borderRadius: '12px',
-                      border: '1px solid #E8E6DF',
-                      color: '#171717',
-                      fontSize: '12px',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
-                    }}
-                  />
-                  <Bar dataKey="Income" fill="#059669" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Expense" fill="#171717" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={flowPoints} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0EFEB" />
+                    <XAxis
+                      dataKey="date"
+                      tickLine={false}
+                      axisLine={{ stroke: '#E8E6DF' }}
+                      tick={{ fill: '#737373', fontSize: 11 }}
+                    />
+                    <YAxis
+                      tickLine={false}
+                      axisLine={false}
+                      tick={{ fill: '#737373', fontSize: 11 }}
+                      tickFormatter={(v) => `${v}`}
+                    />
+                    <Tooltip
+                      formatter={(val: any) => [formatAmount(Number(val)), '']}
+                      contentStyle={{
+                        backgroundColor: '#FFFFFF',
+                        border: '1px solid #E8E6DF',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                      }}
+                    />
+                    <Bar dataKey="Income" fill="#10B981" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                    <Bar dataKey="Expense" fill="#171717" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             )}
           </div>
-        </div>
 
-        {/* Category Spending Donut Chart */}
-        <div className="lg:col-span-5 bg-white border border-[#E8E6DF] rounded-2xl p-6 shadow-2xs">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-neutral-900 flex items-center gap-2">
-              <PieIcon className="w-4 h-4 text-[#164A3A]" />
-              <span>Category Share</span>
-            </h3>
-            <span className="text-xs text-neutral-400">Expense Distribution</span>
-          </div>
+          {/* 4. What did I spend it on? Category Breakdown List */}
+          <div className="bg-white border border-[#E8E6DF] rounded-2xl p-6 shadow-2xs">
+            <div className="flex items-center justify-between pb-3 border-b border-[#E8E6DF] mb-4">
+              <div>
+                <h3 className="text-sm font-bold text-neutral-900">Spending by Category</h3>
+                <p className="text-[11px] text-neutral-500">Distribution of monthly expenses</p>
+              </div>
+              <span className="text-xs font-bold text-neutral-700">
+                Total: {formatAmount(totalSpent)}
+              </span>
+            </div>
 
-          <div className="h-64 w-full">
             {chartCategories.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-xs text-neutral-400">
-                No categorized spending for this period.
+              <div className="text-center py-8 text-xs text-neutral-400">
+                No categorized spending this month.
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <RechartsPieChart>
-                  <Pie
-                    data={chartCategories}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={55}
-                    outerRadius={85}
-                    paddingAngle={3}
-                    dataKey="amount"
-                  >
-                    {chartCategories.map((_, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={CHART_PALETTE[index % CHART_PALETTE.length]}
+              <div className="space-y-3">
+                {chartCategories.map((c) => (
+                  <div key={c.name} className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-6 h-6 rounded-md flex items-center justify-center text-white text-[10px]"
+                          style={{ backgroundColor: c.color || '#1F6B50' }}
+                        >
+                          <CategoryIcon iconName={c.icon} className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="font-semibold text-neutral-800">{c.name}</span>
+                        <span className="text-[10px] text-neutral-400">
+                          ({c.count} transaction{c.count === 1 ? '' : 's'})
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 font-bold text-neutral-900">
+                        <span>{formatAmount(c.amount)}</span>
+                        <span className="text-neutral-400 text-[11px] font-normal w-10 text-right">
+                          {c.percentage.toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="w-full h-1.5 bg-neutral-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-[#164A3A] rounded-full transition-all duration-300"
+                        style={{ width: `${Math.min(c.percentage, 100)}%` }}
                       />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(val: any) => [formatAmount(Number(val)), 'Spent']}
-                    contentStyle={{
-                      backgroundColor: '#FFFFFF',
-                      borderRadius: '12px',
-                      border: '1px solid #E8E6DF',
-                      color: '#171717',
-                      fontSize: '12px',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
-                    }}
-                  />
-                </RechartsPieChart>
-              </ResponsiveContainer>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
-        </div>
-      </div>
+        </>
+      )}
 
-      {/* Top Spending Categories Ranked */}
-      <div className="bg-white border border-[#E8E6DF] rounded-2xl p-6 shadow-2xs">
-        <h3 className="text-sm font-bold text-neutral-900 mb-4">
-          Spending by Category Breakdown
-        </h3>
-
-        {chartCategories.length === 0 ? (
-          <div className="text-center py-8 text-xs text-neutral-400">
-            No spending recorded for this month.
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {categoryData?.categories.map((c, idx) => (
-              <div key={c.category} className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2.5">
-                    <div
-                      className="w-6 h-6 rounded-md flex items-center justify-center text-white text-xs"
-                      style={{ backgroundColor: c.color || CHART_PALETTE[idx % CHART_PALETTE.length] }}
-                    >
-                      <CategoryIcon iconName={c.icon} className="w-3.5 h-3.5" />
-                    </div>
-                    <span className="font-semibold text-neutral-900">{c.category}</span>
-                    <span className="text-[11px] text-neutral-400">
-                      ({c.transaction_count} transaction{c.transaction_count === 1 ? '' : 's'})
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-extrabold text-neutral-900">
-                      {formatAmount(c.total_spent)}
-                    </span>
-                    <span className="text-neutral-500 font-semibold w-12 text-right">
-                      {c.percentage.toFixed(1)}%
-                    </span>
-                  </div>
-                </div>
-
-                <div className="w-full h-2 bg-neutral-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all duration-300"
-                    style={{
-                      width: `${Math.min(c.percentage, 100)}%`,
-                      backgroundColor: c.color || CHART_PALETTE[idx % CHART_PALETTE.length],
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <TransactionModal
+        isOpen={isTxModalOpen}
+        onClose={() => setIsTxModalOpen(false)}
+        onSubmit={handleCreateTx}
+        defaultType="expense"
+      />
     </div>
   );
 };

@@ -118,15 +118,29 @@ def get_user_expenses(
             (Expense.title.ilike(f"%{search}%")) | (Expense.notes.ilike(f"%{search}%"))
         )
 
-    # Compute totals before pagination
+    # Compute totals across current filters (excluding transaction_type tab)
+    totals_query = db.query(Expense).filter(Expense.user_id == user_id)
+    if category:
+        totals_query = totals_query.filter(Expense.category.ilike(f"%{category}%"))
+    if account_id:
+        totals_query = totals_query.filter(Expense.account_id == account_id)
+    if start_date:
+        totals_query = totals_query.filter(Expense.expense_date >= start_date)
+    if end_date:
+        totals_query = totals_query.filter(Expense.expense_date <= end_date)
+    if search:
+        totals_query = totals_query.filter(
+            (Expense.title.ilike(f"%{search}%")) | (Expense.notes.ilike(f"%{search}%"))
+        )
+
     total_income = (
-        query.filter(Expense.transaction_type == "income")
+        totals_query.filter(Expense.transaction_type == "income")
         .with_entities(func.coalesce(func.sum(Expense.amount), Decimal("0.00")))
         .scalar()
         or Decimal("0.00")
     )
     total_expenses = (
-        query.filter(Expense.transaction_type == "expense")
+        totals_query.filter(Expense.transaction_type == "expense")
         .with_entities(func.coalesce(func.sum(Expense.amount), Decimal("0.00")))
         .scalar()
         or Decimal("0.00")

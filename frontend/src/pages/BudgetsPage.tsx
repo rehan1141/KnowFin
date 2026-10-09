@@ -83,7 +83,7 @@ export const BudgetsPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2 border-b border-[#E8E6DF]">
         <div>
           <span className="text-xs font-semibold tracking-wider uppercase text-neutral-500">
-            Monthly Spending Guardrails
+            Monthly Budgets
           </span>
           <h1 className="text-2xl font-bold tracking-tight text-neutral-900 mt-0.5">
             Budgets

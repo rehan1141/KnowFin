@@ -33,6 +33,7 @@ def read_expenses(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(15, ge=1, le=100, description="Items per page"),
     type: Optional[str] = Query(None, description="Filter by transaction type (expense, income, transfer)"),
+    transaction_type: Optional[str] = Query(None, description="Alias for type filter"),
     category: Optional[str] = Query(None, description="Filter by category"),
     account_id: Optional[int] = Query(None, description="Filter by account id"),
     search: Optional[str] = Query(None, description="Search by title or note text"),
@@ -44,13 +45,14 @@ def read_expenses(
     current_user: User = Depends(get_current_user),
 ):
     """Retrieve transactions with pagination, filtering, and sorting."""
+    actual_type = transaction_type or type
     return expense_service.get_user_expenses(
         db,
         user_id=current_user.id,
         page=page,
         page_size=page_size,
         category=category,
-        transaction_type=type,
+        transaction_type=actual_type,
         account_id=account_id,
         search=search,
         start_date=start_date,

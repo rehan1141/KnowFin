@@ -2,30 +2,32 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Plus,
+  ArrowRight,
+  ChevronRight,
   Clock,
   Landmark,
-  ArrowRight,
-  ShieldCheck,
-  ChevronRight,
+  ArrowDownRight,
+  ArrowUpRight,
+  ArrowLeftRight,
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { useCurrency } from '../contexts/CurrencyContext';
 import { analyticsService } from '../services/analyticsService';
 import { expenseService } from '../services/expenseService';
 import { accountService } from '../services/accountService';
 import { recurringService } from '../services/recurringService';
-import { useAuth } from '../contexts/AuthContext';
-import { useCurrency } from '../contexts/CurrencyContext';
-import { formatDate, formatMonthYear } from '../utils/formatters';
 import { CategoryIcon } from '../utils/categoryIcons';
+import { formatDate, formatMonthYear } from '../utils/formatters';
 import { TransactionModal } from '../components/transactions/TransactionModal';
 import { AccountModal } from '../components/accounts/AccountModal';
 import type {
   MonthlySummary,
-  BudgetStatusItem,
   Expense,
   Account,
   RecurringTransaction,
   ExpenseCreate,
   AccountCreate,
+  TransactionType,
 } from '../types';
 
 export const DashboardPage: React.FC = () => {
@@ -36,7 +38,8 @@ export const DashboardPage: React.FC = () => {
   const currentYear = currentDate.getFullYear();
 
   const [summary, setSummary] = useState<MonthlySummary | null>(null);
-  const [budgetStatuses, setBudgetStatuses] = useState<BudgetStatusItem[]>([]);
+  const [totalBudgeted, setTotalBudgeted] = useState<number>(0);
+  const [totalSpentBudgeted, setTotalSpentBudgeted] = useState<number>(0);
   const [recentExpenses, setRecentExpenses] = useState<Expense[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [upcomingBills, setUpcomingBills] = useState<RecurringTransaction[]>([]);
@@ -45,6 +48,7 @@ export const DashboardPage: React.FC = () => {
 
   // Modal States
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
+  const [txModalDefaultType, setTxModalDefaultType] = useState<TransactionType>('expense');
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
 
   const greeting = (() => {
@@ -54,7 +58,7 @@ export const DashboardPage: React.FC = () => {
     return 'Good evening';
   })();
 
-  const displayName = user?.full_name || 'Rehan Multani';
+  const displayName = user?.full_name || 'Rehan';
 
   const fetchDashboardData = useCallback(async () => {
     setIsLoading(true);
@@ -68,7 +72,8 @@ export const DashboardPage: React.FC = () => {
         recurringService.getUpcoming(30),
       ]);
       setSummary(sumRes);
-      setBudgetStatuses(budRes.budgets);
+      setTotalBudgeted(Number(budRes.total_budgeted || 0));
+      setTotalSpentBudgeted(Number(budRes.total_spent_budgeted || 0));
       setRecentExpenses(txRes.items);
       setAccounts(accRes.accounts);
       setUpcomingBills(upRes.items);
@@ -83,6 +88,11 @@ export const DashboardPage: React.FC = () => {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
+  const handleOpenTxModal = (type: TransactionType = 'expense') => {
+    setTxModalDefaultType(type);
+    setIsTxModalOpen(true);
+  };
+
   const handleCreateTx = async (data: ExpenseCreate) => {
     await expenseService.create(data);
     await fetchDashboardData();
@@ -96,7 +106,7 @@ export const DashboardPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-28 text-neutral-500">
-        <div className="w-8 h-8 rounded-full border-2 border-neutral-300 border-t-[#164A3A] animate-spin mb-3" />
+        <div className="w-6 h-6 rounded-full border-2 border-neutral-300 border-t-[#164A3A] animate-spin mb-3" />
         <span className="text-xs font-medium">Gathering your financial picture...</span>
       </div>
     );
@@ -117,167 +127,141 @@ export const DashboardPage: React.FC = () => {
     );
   }
 
-  const totalBalance = summary?.total_balance ?? 0;
-  const netSavings = summary?.net_savings ?? 0;
-  const totalIncome = summary?.total_income ?? 0;
-  const totalSpent = summary?.total_spent ?? 0;
+  const totalBalance = Number(summary?.total_balance ?? 0);
+  const netSavings = Number(summary?.net_savings ?? 0);
+  const totalIncome = Number(summary?.total_income ?? 0);
+  const totalSpent = Number(summary?.total_spent ?? 0);
+  const totalTxCount = Number(summary?.total_transactions ?? 0);
+
+  const remainingBudget = Math.max(0, totalBudgeted - totalSpentBudgeted);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-200">
-      {/* Editorial Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2 border-b border-[#E8E6DF]">
+    <div className="space-y-8 animate-in fade-in duration-200 max-w-5xl mx-auto">
+      {/* 1. Daily Rhythm Header & Quick Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-[#E8E6DF]">
         <div>
           <span className="text-xs font-semibold tracking-wider uppercase text-neutral-500">
-            {formatMonthYear(currentMonth, currentYear)} · Wealth Overview
+            {formatMonthYear(currentMonth, currentYear)} · Your money at a glance
           </span>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-neutral-900 mt-1">
-            {greeting}, {displayName.split(' ')[0]}
+          <h1 className="text-2xl md:text-3xl font-black tracking-tight text-neutral-900 mt-1">
+            {greeting}, {displayName.split(' ')[0]}.
           </h1>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        {/* Quick Add Bar: Expense | Income | Transfer */}
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => setIsAccountModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-[#E8E6DF] text-neutral-700 text-xs font-semibold rounded-lg hover:bg-neutral-50 transition shadow-2xs"
+            onClick={() => handleOpenTxModal('expense')}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-neutral-900 text-white text-xs font-bold rounded-xl hover:bg-neutral-800 transition shadow-xs"
           >
-            <Landmark className="w-3.5 h-3.5 text-neutral-500" />
-            <span>Add Account</span>
+            <ArrowDownRight className="w-3.5 h-3.5 text-rose-400" />
+            <span>Add expense</span>
           </button>
           <button
-            onClick={() => setIsTxModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#164A3A] text-white text-xs font-bold rounded-lg hover:bg-[#12382c] transition shadow-xs"
+            onClick={() => handleOpenTxModal('income')}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#164A3A] text-white text-xs font-bold rounded-xl hover:bg-[#12382c] transition shadow-xs"
           >
-            <Plus className="w-4 h-4" />
-            <span>Record Transaction</span>
+            <ArrowUpRight className="w-3.5 h-3.5 text-emerald-300" />
+            <span>Add income</span>
+          </button>
+          <button
+            onClick={() => handleOpenTxModal('transfer')}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-[#E8E6DF] text-neutral-700 text-xs font-semibold rounded-xl hover:bg-neutral-50 transition shadow-2xs"
+          >
+            <ArrowLeftRight className="w-3.5 h-3.5 text-neutral-500" />
+            <span>Transfer</span>
           </button>
         </div>
       </div>
 
-      {/* Hero Financial Balance Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-        {/* Left Hero Card: Total Balance & Net Cash Flow */}
-        <div className="lg:col-span-7 bg-white border border-[#E8E6DF] rounded-2xl p-7 shadow-2xs flex flex-col justify-between">
+      {/* 2. Primary Financial Anchor: Total Balance + This Month Summary */}
+      <div className="bg-white border border-[#E8E6DF] rounded-2xl p-6 sm:p-8 shadow-2xs">
+        <div className="flex flex-col md:flex-row md:items-baseline justify-between gap-6 pb-6 border-b border-[#E8E6DF]">
           <div>
-            <div className="flex items-center justify-between text-neutral-500 text-xs font-medium mb-3">
-              <span className="uppercase tracking-wider font-semibold">Total Net Balance</span>
-              <span className="text-[11px] bg-neutral-100 text-neutral-700 px-2 py-0.5 rounded-md font-medium">
-                All Active Accounts
-              </span>
-            </div>
-            <div className="text-4xl md:text-5xl font-black text-neutral-900 tracking-tight">
+            <span className="text-xs font-semibold uppercase text-neutral-400 tracking-wider block">
+              Total available balance
+            </span>
+            <div className="text-4xl md:text-5xl font-black text-neutral-900 tracking-tight mt-1">
               {formatAmount(totalBalance)}
             </div>
-            <div className="flex items-center gap-2 mt-3 text-xs">
+            <div className="flex items-center gap-2 mt-2 text-xs">
               <span
-                className={`inline-flex items-center gap-1 font-semibold px-2 py-0.5 rounded-md ${
+                className={`font-semibold px-2 py-0.5 rounded-md ${
                   netSavings >= 0 ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-800'
                 }`}
               >
                 {netSavings >= 0 ? '+' : ''}
-                {formatAmount(netSavings)}
+                {formatAmount(netSavings)} this month
               </span>
-              <span className="text-neutral-500">net cash flow this month</span>
+              <span className="text-neutral-400">across {accounts.length} active account{accounts.length === 1 ? '' : 's'}</span>
             </div>
           </div>
 
-          {/* Quick Cash Flow Mini-Breakdown */}
-          <div className="grid grid-cols-3 gap-3 pt-6 mt-6 border-t border-[#E8E6DF]">
+          {/* This Month Compact Summary Strip */}
+          <div className="grid grid-cols-3 gap-6 sm:gap-8 pt-4 md:pt-0">
             <div>
-              <span className="text-[11px] text-neutral-500 block font-medium">Income</span>
-              <span className="text-base font-bold text-emerald-700 tracking-tight">
+              <span className="text-[11px] font-semibold text-neutral-400 block uppercase">Income</span>
+              <span className="text-lg font-bold text-emerald-700 block mt-0.5">
                 +{formatAmount(totalIncome)}
               </span>
+              <span className="text-[10px] text-neutral-400">this month</span>
             </div>
             <div>
-              <span className="text-[11px] text-neutral-500 block font-medium">Expenses</span>
-              <span className="text-base font-bold text-neutral-900 tracking-tight">
+              <span className="text-[11px] font-semibold text-neutral-400 block uppercase">Spent</span>
+              <span className="text-lg font-bold text-neutral-900 block mt-0.5">
                 -{formatAmount(totalSpent)}
               </span>
+              <span className="text-[10px] text-neutral-400">{totalTxCount} transaction{totalTxCount === 1 ? '' : 's'}</span>
             </div>
             <div>
-              <span className="text-[11px] text-neutral-500 block font-medium">Savings Rate</span>
-              <span className="text-base font-bold text-[#164A3A] tracking-tight">
-                {summary?.savings_rate ?? 0}%
+              <span className="text-[11px] font-semibold text-neutral-400 block uppercase">Saved</span>
+              <span className="text-lg font-bold text-[#164A3A] block mt-0.5">
+                {netSavings >= 0 ? '+' : ''}{formatAmount(netSavings)}
+              </span>
+              <span className="text-[10px] text-neutral-400">
+                {totalIncome > 0 ? `${summary?.savings_rate}% rate` : 'no income'}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Right Card: Accounts Breakdown List */}
-        <div className="lg:col-span-5 bg-white border border-[#E8E6DF] rounded-2xl p-6 shadow-2xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-neutral-900 tracking-tight">Accounts & Wallets</h3>
-              <Link
-                to="/accounts"
-                className="text-xs text-[#164A3A] hover:underline font-semibold flex items-center gap-0.5"
-              >
-                Manage <ChevronRight className="w-3.5 h-3.5" />
-              </Link>
+        {/* Budget Health / Available to Spend row */}
+        {totalBudgeted > 0 && (
+          <div className="pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-neutral-700">Monthly budget progress:</span>
+              <span className="text-neutral-500">
+                Budget {formatAmount(totalBudgeted)} · Spent {formatAmount(totalSpentBudgeted)}
+              </span>
             </div>
-
-            {accounts.length === 0 ? (
-              <div className="text-center py-8 text-neutral-400 text-xs">
-                No accounts set up yet. Click "Add Account" above.
-              </div>
-            ) : (
-              <div className="space-y-2.5">
-                {accounts.slice(0, 4).map((acc) => (
-                  <div
-                    key={acc.id}
-                    className="flex items-center justify-between p-2.5 rounded-xl border border-[#E8E6DF] hover:border-neutral-300 transition"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-neutral-100 flex items-center justify-center text-neutral-700">
-                        <Landmark className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <span className="text-xs font-bold text-neutral-900 block leading-tight">
-                          {acc.name}
-                        </span>
-                        <span className="text-[10px] text-neutral-500 capitalize">
-                          {acc.account_type.replace('_', ' ')}
-                        </span>
-                      </div>
-                    </div>
-                    <span className="text-sm font-extrabold text-neutral-900">
-                      {formatAmount(acc.current_balance)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="font-bold text-[#164A3A]">
+              Remaining to spend: {formatAmount(remainingBudget)}
+            </div>
           </div>
-
-          <div className="pt-3 mt-3 border-t border-[#E8E6DF] text-right">
-            <span className="text-[11px] text-neutral-500">
-              {accounts.length} registered account{accounts.length === 1 ? '' : 's'}
-            </span>
-          </div>
-        </div>
+        )}
       </div>
 
-      {/* Two Column Layout: Upcoming Recurring Bills & Budget Health */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Upcoming Fixed Payments (Subscriptions, Rent, Phone) */}
-        <div className="lg:col-span-6 bg-white border border-[#E8E6DF] rounded-2xl p-6 shadow-2xs">
-          <div className="flex items-center justify-between mb-4">
+      {/* 3. Daily Money Flow: Coming Up & Accounts */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left Column: Coming Up (Upcoming Bills) */}
+        <div className="lg:col-span-7 bg-white border border-[#E8E6DF] rounded-2xl p-6 shadow-2xs">
+          <div className="flex items-center justify-between pb-3 border-b border-[#E8E6DF] mb-3">
             <div>
-              <h3 className="text-sm font-bold text-neutral-900">Upcoming Fixed Bills</h3>
-              <p className="text-[11px] text-neutral-500">Scheduled in next 30 days</p>
+              <h2 className="text-sm font-bold text-neutral-900">Coming up</h2>
+              <p className="text-[11px] text-neutral-500">Fixed bills & recurring payments</p>
             </div>
             <Link
               to="/recurring"
               className="text-xs text-[#164A3A] hover:underline font-semibold flex items-center gap-0.5"
             >
-              All Bills <ChevronRight className="w-3.5 h-3.5" />
+              All recurring <ChevronRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
           {upcomingBills.length === 0 ? (
-            <div className="text-center py-10 text-neutral-400 text-xs">
-              <Clock className="w-5 h-5 mx-auto mb-2 text-neutral-300" />
-              <span>No upcoming payments scheduled.</span>
+            <div className="py-8 text-center text-xs text-neutral-400">
+              <Clock className="w-5 h-5 mx-auto mb-1.5 text-neutral-300" />
+              <span>No upcoming payments due in the next 30 days.</span>
             </div>
           ) : (
             <div className="divide-y divide-[#E8E6DF]">
@@ -285,8 +269,8 @@ export const DashboardPage: React.FC = () => {
                 <div key={bill.id} className="py-3 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div
-                      className="w-8 h-8 rounded-lg flex items-center justify-center text-white"
-                      style={{ backgroundColor: bill.category_color || '#3B82F6' }}
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-white shrink-0"
+                      style={{ backgroundColor: bill.category_color || '#1F6B50' }}
                     >
                       <CategoryIcon iconName={bill.category_icon} className="w-4 h-4" />
                     </div>
@@ -301,15 +285,15 @@ export const DashboardPage: React.FC = () => {
                   </div>
 
                   <div className="text-right">
-                    <span className="text-xs font-extrabold text-neutral-900 block">
+                    <span className="text-xs font-bold text-neutral-900 block">
                       {formatAmount(bill.amount)}
                     </span>
-                    <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
+                    <span className="text-[10px] font-semibold text-neutral-600 bg-neutral-100 px-1.5 py-0.5 rounded">
                       {bill.days_until_due === 0
                         ? 'Due today'
                         : bill.days_until_due === 1
                         ? 'Due tomorrow'
-                        : `in ${bill.days_until_due} days`}
+                        : `Due in ${bill.days_until_due} days`}
                     </span>
                   </div>
                 </div>
@@ -318,112 +302,135 @@ export const DashboardPage: React.FC = () => {
           )}
         </div>
 
-        {/* Budget Health Indicator */}
-        <div className="lg:col-span-6 bg-white border border-[#E8E6DF] rounded-2xl p-6 shadow-2xs">
-          <div className="flex items-center justify-between mb-4">
+        {/* Right Column: Your Accounts */}
+        <div className="lg:col-span-5 bg-white border border-[#E8E6DF] rounded-2xl p-6 shadow-2xs">
+          <div className="flex items-center justify-between pb-3 border-b border-[#E8E6DF] mb-3">
             <div>
-              <h3 className="text-sm font-bold text-neutral-900">Budget Allocations</h3>
-              <p className="text-[11px] text-neutral-500">Track spending vs monthly target</p>
+              <h2 className="text-sm font-bold text-neutral-900">Your accounts</h2>
+              <p className="text-[11px] text-neutral-500">Where your money lives</p>
             </div>
-            <Link
-              to="/budgets"
+            <button
+              onClick={() => setIsAccountModalOpen(true)}
               className="text-xs text-[#164A3A] hover:underline font-semibold flex items-center gap-0.5"
             >
-              Budgets <ChevronRight className="w-3.5 h-3.5" />
-            </Link>
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add</span>
+            </button>
           </div>
 
-          {budgetStatuses.length === 0 ? (
-            <div className="text-center py-10 text-neutral-400 text-xs">
-              <ShieldCheck className="w-5 h-5 mx-auto mb-2 text-neutral-300" />
-              <span>No budgets set for this month. Set one in Budgets.</span>
+          {accounts.length === 0 ? (
+            <div className="py-8 text-center text-xs text-neutral-400">
+              <Landmark className="w-5 h-5 mx-auto mb-1.5 text-neutral-300" />
+              <span>No accounts registered yet.</span>
             </div>
           ) : (
-            <div className="space-y-4">
-              {budgetStatuses.slice(0, 4).map((b) => (
-                <div key={b.category_id} className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-neutral-800">{b.category_name}</span>
-                    <span className="font-bold text-neutral-900">
-                      {formatAmount(b.total_spent)} / {formatAmount(b.monthly_limit)} ({b.percentage.toFixed(0)}%)
-                    </span>
+            <div className="space-y-2">
+              {accounts.slice(0, 4).map((acc) => (
+                <div
+                  key={acc.id}
+                  className="flex items-center justify-between p-2.5 rounded-xl border border-[#E8E6DF] hover:border-neutral-300 transition"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-neutral-100 flex items-center justify-center text-neutral-700">
+                      <Landmark className="w-3.5 h-3.5" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-neutral-900 block leading-tight">
+                        {acc.name}
+                      </span>
+                      <span className="text-[10px] text-neutral-500 capitalize">
+                        {acc.account_type.replace('_', ' ')}
+                      </span>
+                    </div>
                   </div>
-                  <div className="w-full h-2 bg-neutral-100 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-300 ${
-                        b.status === 'exceeded'
-                          ? 'bg-rose-600'
-                          : b.status === 'warning'
-                          ? 'bg-amber-500'
-                          : 'bg-[#164A3A]'
-                      }`}
-                      style={{ width: `${Math.min(b.percentage, 100)}%` }}
-                    />
-                  </div>
+                  <span className="text-xs font-extrabold text-neutral-900">
+                    {formatAmount(acc.current_balance)}
+                  </span>
                 </div>
               ))}
             </div>
           )}
+
+          <div className="pt-3 mt-3 border-t border-[#E8E6DF] text-right">
+            <Link
+              to="/accounts"
+              className="text-xs font-semibold text-neutral-600 hover:text-neutral-900 inline-flex items-center gap-1"
+            >
+              <span>Manage accounts</span>
+              <ChevronRight className="w-3 h-3" />
+            </Link>
+          </div>
         </div>
       </div>
 
-      {/* Recent Transactions List */}
+      {/* 4. Recent Transactions Section */}
       <div className="bg-white border border-[#E8E6DF] rounded-2xl p-6 shadow-2xs">
-        <div className="flex items-center justify-between pb-4 border-b border-[#E8E6DF] mb-2">
+        <div className="flex items-center justify-between pb-3 border-b border-[#E8E6DF] mb-2">
           <div>
-            <h3 className="text-base font-bold text-neutral-900">Recent Transactions</h3>
-            <p className="text-xs text-neutral-500">Latest financial activities across all accounts</p>
+            <h2 className="text-sm font-bold text-neutral-900">Recent transactions</h2>
+            <p className="text-[11px] text-neutral-500">Latest activity across accounts</p>
           </div>
           <Link
             to="/expenses"
             className="text-xs font-semibold text-[#164A3A] hover:underline flex items-center gap-1"
           >
-            <span>View All</span>
+            <span>View all</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
         {recentExpenses.length === 0 ? (
-          <div className="text-center py-12 text-neutral-400 text-xs">
-            <p className="font-medium text-neutral-600 mb-1">No transactions recorded yet.</p>
-            <p>Start tracking your money by recording your first income or expense.</p>
+          <div className="text-center py-10 text-neutral-400 text-xs">
+            <p className="font-medium text-neutral-700 mb-1">No transactions recorded yet.</p>
+            <p className="mb-3">Add your first expense or income to begin tracking.</p>
             <button
-              onClick={() => setIsTxModalOpen(true)}
-              className="mt-3 px-3 py-1.5 bg-[#164A3A] text-white text-xs font-semibold rounded-lg inline-flex items-center gap-1"
+              onClick={() => handleOpenTxModal('expense')}
+              className="px-3.5 py-1.5 bg-[#164A3A] text-white text-xs font-bold rounded-lg inline-flex items-center gap-1.5"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Add Transaction</span>
+              <span>Add transaction</span>
             </button>
           </div>
         ) : (
           <div className="divide-y divide-[#E8E6DF]">
-            {recentExpenses.map((tx) => {
+            {recentExpenses.slice(0, 5).map((tx) => {
               const isIncome = tx.transaction_type === 'income';
+              const isTransfer = tx.transaction_type === 'transfer';
               return (
-                <div key={tx.id} className="py-3.5 flex items-center justify-between hover:bg-neutral-50/50 px-1 rounded-lg transition">
+                <div
+                  key={tx.id}
+                  className="py-3 flex items-center justify-between hover:bg-neutral-50/60 px-1 rounded-lg transition"
+                >
                   <div className="flex items-center gap-3">
                     <div
-                      className="w-9 h-9 rounded-xl flex items-center justify-center text-white shrink-0"
-                      style={{ backgroundColor: tx.category_color || (isIncome ? '#059669' : '#1F6B50') }}
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-white shrink-0"
+                      style={{
+                        backgroundColor:
+                          tx.category_color || (isIncome ? '#059669' : isTransfer ? '#475569' : '#1F6B50'),
+                      }}
                     >
-                      <CategoryIcon iconName={tx.category_icon} className="w-4 h-4" />
+                      <CategoryIcon iconName={tx.category_icon} className="w-3.5 h-3.5" />
                     </div>
                     <div>
-                      <span className="text-sm font-semibold text-neutral-900 block leading-tight">
+                      <span className="text-xs font-semibold text-neutral-900 block leading-tight">
                         {tx.title}
                       </span>
-                      <span className="text-xs text-neutral-500">
+                      <span className="text-[10px] text-neutral-500">
                         {tx.category} {tx.account_name ? `· ${tx.account_name}` : ''} · {formatDate(tx.expense_date)}
                       </span>
                     </div>
                   </div>
 
                   <span
-                    className={`text-sm font-extrabold tracking-tight ${
-                      isIncome ? 'text-emerald-700' : 'text-neutral-900'
+                    className={`text-xs font-extrabold tracking-tight ${
+                      isIncome
+                        ? 'text-emerald-700'
+                        : isTransfer
+                        ? 'text-neutral-700'
+                        : 'text-neutral-900'
                     }`}
                   >
-                    {isIncome ? '+' : '-'}
+                    {isIncome ? '+' : isTransfer ? '↔ ' : '-'}
                     {formatAmount(tx.amount)}
                   </span>
                 </div>
@@ -438,7 +445,7 @@ export const DashboardPage: React.FC = () => {
         isOpen={isTxModalOpen}
         onClose={() => setIsTxModalOpen(false)}
         onSubmit={handleCreateTx}
-        defaultType="expense"
+        defaultType={txModalDefaultType}
       />
       <AccountModal
         isOpen={isAccountModalOpen}

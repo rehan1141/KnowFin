@@ -51,7 +51,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
       if (initialData) {
         reset({
           title: initialData.title,
-          amount: initialData.amount,
+          amount: Number(initialData.amount),
           category_id: initialData.category_id || null,
           expense_date: initialData.expense_date.split('T')[0],
         });
