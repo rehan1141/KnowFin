@@ -11,7 +11,7 @@ export const Header: React.FC = () => {
   const [isEditingName, setIsEditingName] = useState(false);
   const [fullNameInput, setFullNameInput] = useState(user?.full_name || '');
 
-  const displayName = user?.full_name || 'Rehan Multani';
+  const displayName = user?.full_name || user?.email?.split('@')[0] || 'User';
   const initial = displayName.charAt(0).toUpperCase();
 
   const handleCurrencyChange = async (newCurr: Currency) => {
@@ -72,8 +72,14 @@ export const Header: React.FC = () => {
 
       {/* Profile Drawer / Modal */}
       {isProfileOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl border border-[#E8E6DF] shadow-xl max-w-sm w-full p-6 animate-in fade-in duration-200">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-xs p-4"
+          onClick={() => setIsProfileOpen(false)}
+        >
+          <div
+            className="bg-white rounded-2xl border border-[#E8E6DF] shadow-xl max-w-sm w-full p-6 animate-in fade-in duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between pb-4 border-b border-[#E8E6DF]">
               <div className="flex items-center gap-2 text-sm font-semibold text-neutral-900">
                 <Settings className="w-4 h-4 text-[#164A3A]" />
@@ -81,7 +87,8 @@ export const Header: React.FC = () => {
               </div>
               <button
                 onClick={() => setIsProfileOpen(false)}
-                className="p-1 rounded-md text-neutral-400 hover:text-neutral-600 transition"
+                className="p-1 rounded-md text-neutral-400 hover:text-neutral-600 transition cursor-pointer"
+                aria-label="Close"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -100,12 +107,12 @@ export const Header: React.FC = () => {
                         type="text"
                         value={fullNameInput}
                         onChange={(e) => setFullNameInput(e.target.value)}
-                        className="px-2.5 py-1 text-sm border border-[#E8E6DF] rounded-md flex-1 text-neutral-900"
+                        className="px-2.5 py-1 text-sm border border-[#E8E6DF] rounded-md flex-1 text-neutral-900 focus:outline-none focus:border-[#164A3A]"
                         autoFocus
                       />
                       <button
                         type="submit"
-                        className="p-1 bg-[#164A3A] text-white rounded-md text-xs font-medium"
+                        className="p-1 bg-[#164A3A] text-white rounded-md text-xs font-medium cursor-pointer"
                       >
                         <Check className="w-3.5 h-3.5" />
                       </button>
@@ -117,7 +124,7 @@ export const Header: React.FC = () => {
                       </h4>
                       <button
                         onClick={() => setIsEditingName(true)}
-                        className="text-xs text-[#164A3A] hover:underline font-medium ml-2"
+                        className="text-xs text-[#164A3A] hover:underline font-medium ml-2 cursor-pointer"
                       >
                         Edit
                       </button>
@@ -137,7 +144,7 @@ export const Header: React.FC = () => {
                     <button
                       key={c}
                       onClick={() => handleCurrencyChange(c)}
-                      className={`py-2 px-3 text-xs font-semibold rounded-lg border text-center transition ${
+                      className={`py-2 px-3 text-xs font-semibold rounded-lg border text-center transition cursor-pointer ${
                         currency === c
                           ? 'border-[#164A3A] bg-[#164A3A]/5 text-[#164A3A]'
                           : 'border-[#E8E6DF] text-neutral-600 hover:border-neutral-300'
@@ -156,7 +163,7 @@ export const Header: React.FC = () => {
                   setIsProfileOpen(false);
                   logout();
                 }}
-                className="w-full flex items-center justify-center gap-2 py-2.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                className="w-full flex items-center justify-center gap-2 py-2.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
               >
                 <LogOut className="w-3.5 h-3.5" />
                 <span>Sign Out of KnowFin</span>
