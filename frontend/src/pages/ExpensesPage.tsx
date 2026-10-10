@@ -13,7 +13,7 @@ import { expenseService } from '../services/expenseService';
 import { categoryService } from '../services/categoryService';
 import { accountService } from '../services/accountService';
 import { useCurrency } from '../contexts/CurrencyContext';
-import { formatDate } from '../utils/formatters';
+import { formatShortDate } from '../utils/formatters';
 import { CategoryIcon } from '../utils/categoryIcons';
 import { TransactionModal } from '../components/transactions/TransactionModal';
 import { CategoryManagerDrawer } from '../components/transactions/CategoryManagerDrawer';
@@ -108,7 +108,7 @@ export const ExpensesPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
+    <div className="space-y-6 animate-in fade-in duration-200 max-w-5xl mx-auto">
       {/* Header and Summary Strip */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2 border-b border-[#E8E6DF]">
         <div>
@@ -118,12 +118,12 @@ export const ExpensesPage: React.FC = () => {
           <h1 className="text-2xl font-bold tracking-tight text-neutral-900 mt-0.5">
             Transactions
           </h1>
-          <div className="flex items-center gap-3 text-xs text-neutral-500 mt-1">
-            <span>{total} transactions</span>
-            <span>·</span>
-            <span className="text-emerald-700 font-semibold">+{formatAmount(totalIncome)} In</span>
-            <span>·</span>
-            <span className="text-neutral-800 font-semibold">-{formatAmount(totalExpenses)} Out</span>
+          <div className="flex items-center gap-2 flex-wrap text-xs text-neutral-500 mt-1.5">
+            <span className="font-medium text-neutral-700">{total} transaction{total === 1 ? '' : 's'}</span>
+            <span className="text-neutral-300">|</span>
+            <span className="text-emerald-700 font-semibold">+{formatAmount(totalIncome)} in</span>
+            <span className="text-neutral-300">|</span>
+            <span className="text-neutral-800 font-semibold">−{formatAmount(totalExpenses)} out</span>
           </div>
         </div>
 
@@ -209,17 +209,17 @@ export const ExpensesPage: React.FC = () => {
           </div>
 
           {/* Search Box */}
-          <div className="relative flex-1 max-w-sm">
+          <div className="relative flex-1 max-w-xs">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
             <input
               type="text"
-              placeholder="Search descriptions or notes..."
+              placeholder="Search transactions..."
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
                 setPage(1);
               }}
-              className="w-full pl-9 pr-3.5 py-1.5 border border-[#E8E6DF] rounded-lg text-xs text-neutral-900 outline-none"
+              className="w-full pl-9 pr-3.5 py-2 border border-[#E8E6DF] rounded-lg text-xs text-neutral-900 outline-none placeholder:text-neutral-400"
             />
           </div>
         </div>
@@ -283,9 +283,29 @@ export const ExpensesPage: React.FC = () => {
             <span className="text-xs">Loading ledger...</span>
           </div>
         ) : expenses.length === 0 ? (
-          <div className="text-center py-20 text-neutral-400 text-xs">
-            <p className="text-sm font-semibold text-neutral-700 mb-1">No transactions match.</p>
-            <p>Try clearing your search filters or add a new transaction.</p>
+          <div className="text-center py-16 text-neutral-400 text-xs">
+            <p className="text-sm font-semibold text-neutral-700 mb-1">
+              {searchQuery || selectedCategory || selectedAccountId || activeTypeTab !== 'all'
+                ? 'No transactions match your filters'
+                : 'No transactions recorded yet'}
+            </p>
+            <p className="mb-4">
+              {searchQuery || selectedCategory || selectedAccountId || activeTypeTab !== 'all'
+                ? 'Try adjusting your search or clearing the filters above.'
+                : 'Add your first income or expense to start tracking.'}
+            </p>
+            {!(searchQuery || selectedCategory || selectedAccountId || activeTypeTab !== 'all') && (
+              <button
+                onClick={() => {
+                  setEditingExpense(null);
+                  setIsModalOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#164A3A] text-white text-xs font-bold rounded-lg hover:bg-[#12382c] transition shadow-xs"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add transaction</span>
+              </button>
+            )}
           </div>
         ) : (
           <div className="divide-y divide-[#E8E6DF]">
@@ -329,9 +349,9 @@ export const ExpensesPage: React.FC = () => {
                           </>
                         )}
                         <span>·</span>
-                        <span>{tx.account_name || 'Main Wallet'}</span>
+                        <span>{tx.account_name || 'No account'}</span>
                         <span>·</span>
-                        <span>{formatDate(tx.expense_date)}</span>
+                        <span>{formatShortDate(tx.expense_date)}</span>
                       </div>
                     </div>
                   </div>
@@ -343,11 +363,11 @@ export const ExpensesPage: React.FC = () => {
                         isIncome
                           ? 'text-emerald-700'
                           : isTransfer
-                          ? 'text-neutral-700'
+                          ? 'text-neutral-600'
                           : 'text-neutral-900'
                       }`}
                     >
-                      {isIncome ? '+' : isTransfer ? '↔ ' : '-'}
+                      {isIncome ? '+' : isTransfer ? '↔ ' : '−'}
                       {formatAmount(tx.amount)}
                     </span>
 
