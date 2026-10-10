@@ -17,7 +17,7 @@ import { expenseService } from '../services/expenseService';
 import { accountService } from '../services/accountService';
 import { recurringService } from '../services/recurringService';
 import { CategoryIcon } from '../utils/categoryIcons';
-import { formatDate, formatMonthYear } from '../utils/formatters';
+import { formatShortDate, formatMonthYear } from '../utils/formatters';
 import { TransactionModal } from '../components/transactions/TransactionModal';
 import { AccountModal } from '../components/accounts/AccountModal';
 import type {
@@ -58,7 +58,7 @@ export const DashboardPage: React.FC = () => {
     return 'Good evening';
   })();
 
-  const displayName = user?.full_name || 'Rehan';
+  const displayName = user?.full_name || 'there';
 
   const fetchDashboardData = useCallback(async () => {
     setIsLoading(true);
@@ -204,14 +204,16 @@ export const DashboardPage: React.FC = () => {
               <span className="text-lg font-bold text-emerald-700 block mt-0.5">
                 +{formatAmount(totalIncome)}
               </span>
-              <span className="text-[10px] text-neutral-400">this month</span>
+              <span className="text-[10px] text-neutral-400">earned this month</span>
             </div>
             <div>
               <span className="text-[11px] font-semibold text-neutral-400 block uppercase">Spent</span>
               <span className="text-lg font-bold text-neutral-900 block mt-0.5">
                 -{formatAmount(totalSpent)}
               </span>
-              <span className="text-[10px] text-neutral-400">{totalTxCount} transaction{totalTxCount === 1 ? '' : 's'}</span>
+              <span className="text-[10px] text-neutral-400">
+                across {totalTxCount} transaction{totalTxCount === 1 ? '' : 's'}
+              </span>
             </div>
             <div>
               <span className="text-[11px] font-semibold text-neutral-400 block uppercase">Saved</span>
@@ -219,7 +221,7 @@ export const DashboardPage: React.FC = () => {
                 {netSavings >= 0 ? '+' : ''}{formatAmount(netSavings)}
               </span>
               <span className="text-[10px] text-neutral-400">
-                {totalIncome > 0 ? `${summary?.savings_rate}% rate` : 'no income'}
+                {totalIncome > 0 ? `${summary?.savings_rate}% savings rate` : 'no income yet'}
               </span>
             </div>
           </div>
@@ -227,15 +229,25 @@ export const DashboardPage: React.FC = () => {
 
         {/* Budget Health / Available to Spend row */}
         {totalBudgeted > 0 && (
-          <div className="pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-neutral-700">Monthly budget progress:</span>
-              <span className="text-neutral-500">
-                Budget {formatAmount(totalBudgeted)} · Spent {formatAmount(totalSpentBudgeted)}
+          <div className="pt-5 space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-neutral-700">Monthly budget</span>
+                <span className="text-neutral-500">
+                  {formatAmount(totalSpentBudgeted)} of {formatAmount(totalBudgeted)}
+                </span>
+              </div>
+              <span className="font-bold text-[#164A3A]">
+                {formatAmount(remainingBudget)} remaining
               </span>
             </div>
-            <div className="font-bold text-[#164A3A]">
-              Remaining to spend: {formatAmount(remainingBudget)}
+            <div className="w-full h-1.5 bg-neutral-100 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  totalSpentBudgeted > totalBudgeted ? 'bg-rose-500' : 'bg-[#164A3A]'
+                }`}
+                style={{ width: `${Math.min((totalSpentBudgeted / totalBudgeted) * 100, 100)}%` }}
+              />
             </div>
           </div>
         )}
@@ -399,38 +411,38 @@ export const DashboardPage: React.FC = () => {
               return (
                 <div
                   key={tx.id}
-                  className="py-3 flex items-center justify-between hover:bg-neutral-50/60 px-1 rounded-lg transition"
+                  className="py-3.5 flex items-center justify-between hover:bg-neutral-50/60 -mx-1 px-1 rounded-lg transition"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     <div
-                      className="w-8 h-8 rounded-lg flex items-center justify-center text-white shrink-0"
+                      className="w-9 h-9 rounded-xl flex items-center justify-center text-white shrink-0"
                       style={{
                         backgroundColor:
                           tx.category_color || (isIncome ? '#059669' : isTransfer ? '#475569' : '#1F6B50'),
                       }}
                     >
-                      <CategoryIcon iconName={tx.category_icon} className="w-3.5 h-3.5" />
+                      <CategoryIcon iconName={tx.category_icon} className="w-4 h-4" />
                     </div>
-                    <div>
-                      <span className="text-xs font-semibold text-neutral-900 block leading-tight">
+                    <div className="min-w-0">
+                      <span className="text-[13px] font-semibold text-neutral-900 block leading-tight truncate">
                         {tx.title}
                       </span>
-                      <span className="text-[10px] text-neutral-500">
-                        {tx.category} {tx.account_name ? `· ${tx.account_name}` : ''} · {formatDate(tx.expense_date)}
+                      <span className="text-[11px] text-neutral-500 block mt-0.5">
+                        {tx.category}{tx.account_name ? ` · ${tx.account_name}` : ''} · {formatShortDate(tx.expense_date)}
                       </span>
                     </div>
                   </div>
 
                   <span
-                    className={`text-xs font-extrabold tracking-tight ${
+                    className={`text-[13px] font-extrabold tracking-tight shrink-0 ml-3 ${
                       isIncome
                         ? 'text-emerald-700'
                         : isTransfer
-                        ? 'text-neutral-700'
+                        ? 'text-neutral-600'
                         : 'text-neutral-900'
                     }`}
                   >
-                    {isIncome ? '+' : isTransfer ? '↔ ' : '-'}
+                    {isIncome ? '+' : isTransfer ? '↔ ' : '−'}
                     {formatAmount(tx.amount)}
                   </span>
                 </div>
