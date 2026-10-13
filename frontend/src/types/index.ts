@@ -37,8 +37,9 @@ export interface Account {
   name: string;
   account_type: AccountType;
   currency: Currency;
-  initial_balance: number | string;
-  current_balance: number | string;
+  initial_balance?: number | string | null;
+  current_balance?: number | string | null;
+  is_balance_set?: boolean;
   total_income: number | string;
   total_expenses: number | string;
   is_active: boolean;
@@ -50,24 +51,25 @@ export interface AccountCreate {
   name: string;
   account_type: AccountType;
   currency: Currency;
-  initial_balance: number;
+  initial_balance?: number | null;
 }
 
 export interface AccountUpdate {
   name?: string;
   account_type?: AccountType;
   currency?: Currency;
-  initial_balance?: number;
+  initial_balance?: number | null;
   is_active?: boolean;
 }
 
 export interface AccountListResponse {
   accounts: Account[];
-  total_balance: number | string;
+  total_balance?: number | string | null;
+  is_balance_set?: boolean;
 }
 
 // Transaction / Expense Schemas
-export type TransactionType = 'expense' | 'income' | 'transfer';
+export type TransactionType = 'expense' | 'income' | 'transfer' | 'refund';
 
 export interface Expense {
   id: number;
@@ -119,6 +121,8 @@ export interface PaginatedExpenses {
   pages: number;
   total_income?: number | string;
   total_expenses?: number | string;
+  total_refunds?: number | string;
+  net_expenses?: number | string;
 }
 
 export interface ExpenseFilterParams {
@@ -132,6 +136,25 @@ export interface ExpenseFilterParams {
   end_date?: string;
   sort_by?: string;
   sort_order?: 'asc' | 'desc';
+}
+
+// Transfer Schemas
+export interface TransferCreate {
+  from_account_id: number;
+  to_account_id: number;
+  amount: number;
+  description?: string;
+  date?: string;
+}
+
+export interface TransferResponse {
+  transfer_out_id: number;
+  transfer_in_id: number;
+  from_account_id: number;
+  to_account_id: number;
+  amount: number | string;
+  description?: string | null;
+  date: string;
 }
 
 // Category Schemas
@@ -263,13 +286,17 @@ export interface MonthlySummary {
   year: number;
   total_income: number | string;
   total_spent: number | string;
+  gross_spending?: number | string;
+  total_refunds?: number | string;
+  net_spending?: number | string;
   net_savings: number | string;
   savings_rate: number;
   total_transactions: number;
   fixed_expenses: number | string;
   variable_expenses: number | string;
   average_daily_spending: number | string;
-  total_balance: number | string;
+  total_balance?: number | string | null;
+  is_balance_set?: boolean;
 }
 
 export interface CategorySpending {

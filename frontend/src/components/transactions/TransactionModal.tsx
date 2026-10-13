@@ -9,9 +9,9 @@ import { useCurrency } from '../../contexts/CurrencyContext';
 import type { Expense, ExpenseCreate, Category, Account, TransactionType } from '../../types';
 
 const transactionSchema = z.object({
-  title: z.string().min(1, 'Description is required'),
-  amount: z.coerce.number().positive('Amount must be greater than 0'),
-  transaction_type: z.enum(['expense', 'income', 'transfer']),
+  title: z.string(),
+  amount: z.coerce.number().positive('Please enter an amount.'),
+  transaction_type: z.enum(['expense', 'income', 'transfer', 'refund']),
   category_id: z.coerce.number().optional().nullable(),
   subcategory_id: z.coerce.number().optional().nullable(),
   account_id: z.coerce.number().optional().nullable(),

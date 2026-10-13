@@ -2,75 +2,126 @@
 
 @layer base {
   :root {
-    --bg-app: #F5F3EE;
-    --bg-surface: #FFFFFF;
-    --text-primary: #171717;
-    --text-secondary: #6B6B65;
-    --accent-forest: #164A3A;
-    --accent-emerald: #1F6B50;
-    --accent-sage: #5C7C64;
-    --accent-expense: #DC2626;
-    --accent-income: #059669;
-    --border-light: #E8E6DF;
+    /* ── KnowFin Approved Design Palette ── */
+    --kf-ink: #20251F;
+    --kf-ivory: #F6F2E9;
+    --kf-stone: #DDD7CB;
+    --kf-stone-light: #ECE8DF;
+    --kf-amber: #D99A37;
+    --kf-amber-hover: #C5882B;
+    --kf-surface: #FFFFFF;
+    
+    /* ── Financial Semantics (Subtle & Restrained) ── */
+    --kf-income: #2E7D5B;
+    --kf-income-bg: #EAF4EE;
+    --kf-expense: #C2410C;
+    --kf-expense-bg: #FEF3EE;
+    --kf-refund: #2563EB;
+    --kf-refund-bg: #EFF6FF;
+
+    /* ── Typography Colors ── */
+    --kf-text-main: #20251F;
+    --kf-text-muted: #6B7268;
+    --kf-text-subtle: #8E948B;
+
+    /* ── Canonical Corner Radii ── */
+    --kf-radius-modal: 24px;
+    --kf-radius-card: 18px;
+    --kf-radius-input: 14px;
+    --kf-radius-button: 12px;
   }
 
   body {
-    background-color: #F5F3EE;
-    color: #171717;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: var(--kf-ivory);
+    color: var(--kf-text-main);
+    font-family: "Helvetica Neue", Helvetica, Arial, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
     margin: 0;
   }
 
-  /* ── Form Inputs Global High-Contrast Fix ── */
+  /* ── Tabular Numerals for Financial Data ── */
+  .kf-tnum,
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Inputs Global Styling ── */
   input,
   textarea,
   select {
-    color: #171717 !important;
-    background-color: #FFFFFF !important;
+    color: var(--kf-ink) !important;
+    background-color: var(--kf-surface) !important;
+    border-radius: var(--kf-radius-input);
   }
 
   input::placeholder,
   textarea::placeholder {
-    color: #9CA3AF !important;
-    opacity: 1 !important;
+    color: var(--kf-text-subtle) !important;
+    opacity: 0.85 !important;
   }
 
   input:focus,
   textarea:focus,
   select:focus {
     outline: none !important;
-    border-color: #1F6B50 !important;
-    box-shadow: 0 0 0 2px rgba(31, 107, 80, 0.15) !important;
+    border-color: var(--kf-amber) !important;
+    box-shadow: 0 0 0 3px rgba(217, 154, 55, 0.18) !important;
   }
 }
 
-/* ── KnowFin Editorial Design Utilities ── */
+/* ── Reusable Component Design Tokens ── */
 .kf-bg-app {
-  background-color: #F5F3EE;
+  background-color: var(--kf-ivory);
 }
 
 .kf-card {
-  background-color: #FFFFFF;
-  border: 1px solid #E8E6DF;
-  border-radius: 14px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  background-color: var(--kf-surface);
+  border: 1px solid var(--kf-stone);
+  border-radius: var(--kf-radius-card);
+  box-shadow: 0 1px 2px rgba(32, 37, 31, 0.04);
 }
 
 .kf-card-interactive {
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .kf-card-interactive:hover {
-  border-color: #D1CFCA;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-color: #C8C2B5;
+  box-shadow: 0 4px 14px rgba(32, 37, 31, 0.06);
   transform: translateY(-1px);
 }
 
-.kf-border {
-  border-color: #E8E6DF;
+.kf-modal {
+  border-radius: var(--kf-radius-modal);
+  background-color: var(--kf-surface);
+  border: 1px solid var(--kf-stone);
+  box-shadow: 0 20px 40px -10px rgba(32, 37, 31, 0.16);
+}
+
+.kf-btn-primary {
+  background-color: var(--kf-amber);
+  color: #FFFFFF;
+  border-radius: var(--kf-radius-button);
+  font-weight: 500;
+  transition: background-color 0.15s ease;
+}
+
+.kf-btn-primary:hover {
+  background-color: var(--kf-amber-hover);
+}
+
+.kf-btn-secondary {
+  background-color: var(--kf-stone-light);
+  color: var(--kf-ink);
+  border-radius: var(--kf-radius-button);
+  font-weight: 500;
+  transition: background-color 0.15s ease;
+}
+
+.kf-btn-secondary:hover {
+  background-color: var(--kf-stone);
 }
 
 /* ── Custom Scrollbar ── */
@@ -79,12 +130,12 @@
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #F5F3EE;
+  background: var(--kf-ivory);
 }
 ::-webkit-scrollbar-thumb {
-  background: #D1CFCA;
+  background: var(--kf-stone);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #B8B6B0;
+  background: #C4BEB1;
 }
