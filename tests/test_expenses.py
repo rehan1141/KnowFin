@@ -1,30 +1,23 @@
 import uuid
 from app.main import app
-from app.core.security import create_access_token, hash_password
-from app.db.session import SessionLocal
-from app.models.user import User
 from fastapi.testclient import TestClient
 
 client = TestClient(app)
 
 
 def get_auth_headers() -> dict:
-    db = SessionLocal()
-    try:
-        unique_email = f"user_{uuid.uuid4().hex[:8]}@example.com"
-        user = User(
-            email=unique_email,
-            hashed_password=hash_password("password123"),
-            full_name="Test User",
-            is_active=True
-        )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-        token = create_access_token(subject=user.email)
-        return {"Authorization": f"Bearer {token}"}
-    finally:
-        db.close()
+    unique_email = f"user_{uuid.uuid4().hex[:8]}@example.com"
+    password = "password123"
+    client.post(
+        "/api/v1/auth/register",
+        json={"email": unique_email, "password": password, "full_name": "Test User"}
+    )
+    login_resp = client.post(
+        "/api/v1/auth/login",
+        data={"username": unique_email, "password": password}
+    )
+    token = login_resp.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
 
 
 def test_expense_crud_lifecycle():
