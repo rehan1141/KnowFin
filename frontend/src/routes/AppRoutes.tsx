@@ -12,6 +12,7 @@ import { AccountsPage } from '../pages/AccountsPage';
 import { RecurringPage } from '../pages/RecurringPage';
 import { BudgetsPage } from '../pages/BudgetsPage';
 import { AnalyticsPage } from '../pages/AnalyticsPage';
+import { SettingsPage } from '../pages/SettingsPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 
 export const AppRoutes: React.FC = () => {
@@ -32,6 +33,7 @@ export const AppRoutes: React.FC = () => {
           <Route path="/recurring" element={<RecurringPage />} />
           <Route path="/budgets" element={<BudgetsPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
           {/* Categories are now integrated into Transactions */}
           <Route path="/categories" element={<Navigate to="/expenses" replace />} />
         </Route>
