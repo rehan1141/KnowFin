@@ -175,6 +175,14 @@ def get_user_expenses(
         or Decimal("0.00")
     )
 
+    total_refunds = (
+        totals_query.filter(Expense.transaction_type == "refund")
+        .with_entities(func.coalesce(func.sum(Expense.amount), Decimal("0.00")))
+        .scalar()
+        or Decimal("0.00")
+    )
+    net_expenses = total_expenses - total_refunds
+
     total = query.count()
 
     ALLOWED_SORT_FIELDS = {"expense_date", "amount", "title"}
@@ -200,6 +208,8 @@ def get_user_expenses(
         "pages": pages,
         "total_income": total_income,
         "total_expenses": total_expenses,
+        "total_refunds": total_refunds,
+        "net_expenses": net_expenses,
     }
 
 
