@@ -2,11 +2,49 @@ import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { X, ArrowDownRight, ArrowUpRight, ArrowLeftRight, ChevronDown, ChevronUp } from 'lucide-react';
+import {
+  X,
+  ArrowDownRight,
+  ArrowUpRight,
+  ArrowLeftRight,
+  Check,
+  AlertCircle,
+  AlertTriangle,
+  Folder,
+  Utensils,
+  Car,
+  Home,
+  Receipt,
+  ShoppingBag,
+  HeartPulse,
+  Gamepad2,
+  Tv,
+  Plane,
+  Sparkles,
+  GraduationCap,
+} from 'lucide-react';
 import { categoryService } from '../../services/categoryService';
 import { accountService } from '../../services/accountService';
+import { transferService } from '../../services/transferService';
 import { useCurrency } from '../../contexts/CurrencyContext';
 import type { Expense, ExpenseCreate, Category, Account, TransactionType } from '../../types';
+
+// Map icon strings to Lucide components
+const ICON_MAP: Record<string, React.ElementType> = {
+  Utensils,
+  Car,
+  Home,
+  House: Home,
+  Receipt,
+  ShoppingBag,
+  HeartPulse,
+  Gamepad2,
+  Tv,
+  Plane,
+  Sparkles,
+  GraduationCap,
+  Folder,
+};
 
 const transactionSchema = z.object({
   title: z.string(),
@@ -30,6 +68,8 @@ interface TransactionModalProps {
   defaultType?: TransactionType;
 }
 
+type ModalView = 'form' | 'success' | 'error' | 'confirm_discard';
+
 export const TransactionModal: React.FC<TransactionModalProps> = ({
   isOpen,
   onClose,
@@ -37,13 +77,22 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   initialData,
   defaultType = 'expense',
 }) => {
-  const { symbol } = useCurrency();
+  const { symbol, formatAmount } = useCurrency();
   const [activeType, setActiveType] = useState<TransactionType>(defaultType);
   const [categories, setCategories] = useState<Category[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [modalView, setModalView] = useState<ModalView>('form');
+  const [savedSummary, setSavedSummary] = useState<{
+    amount: number;
+    title: string;
+    categoryName: string;
+    categoryIcon: string;
+    type: TransactionType;
+    date: string;
+  } | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string>('');
+  const [categoryError, setCategoryError] = useState<string | null>(null);
 
   const {
     register,
@@ -51,25 +100,51 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     reset,
     watch,
     setValue,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema),
     defaultValues: {
+      title: '',
+      amount: '' as any,
       transaction_type: defaultType,
+      category_id: null,
+      subcategory_id: null,
+      account_id: null,
+      to_account_id: null,
+      expense_date: new Date().toISOString().split('T')[0],
+      notes: '',
     },
   });
 
   const selectedCategoryId = watch('category_id');
+  const selectedFromAccountId = watch('account_id');
+  const enteredAmount = watch('amount');
+  const enteredTitle = watch('title');
+
   const selectedCategory = categories.find((c) => c.id === Number(selectedCategoryId));
 
   useEffect(() => {
     if (isOpen) {
       categoryService.list().then(setCategories).catch(() => {});
-      accountService.list().then((res) => setAccounts(res.accounts)).catch(() => {});
+      accountService
+        .list()
+        .then((res) => {
+          setAccounts(res.accounts);
+          if (!initialData && res.accounts.length > 0) {
+            setValue('account_id', res.accounts[0].id);
+            if (res.accounts.length > 1) {
+              setValue('to_account_id', res.accounts[1].id);
+            }
+          }
+        })
+        .catch(() => {});
+
+      setModalView('form');
+      setCategoryError(null);
+      setErrorMessage('');
 
       if (initialData) {
         setActiveType(initialData.transaction_type);
-        setShowMoreOptions(true);
         reset({
           title: initialData.title,
           amount: Number(initialData.amount),
@@ -83,7 +158,6 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
         });
       } else {
         setActiveType(defaultType);
-        setShowMoreOptions(false);
         reset({
           title: '',
           amount: '' as any,
@@ -97,354 +171,504 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
         });
       }
     }
-  }, [isOpen, initialData, defaultType, reset]);
+  }, [isOpen, initialData, defaultType, reset, setValue]);
+
+  if (!isOpen) return null;
 
   const handleTypeToggle = (type: TransactionType) => {
     setActiveType(type);
     setValue('transaction_type', type);
-    setValue('category_id', null);
-    setValue('subcategory_id', null);
+    setCategoryError(null);
   };
 
-  if (!isOpen) return null;
+  const handleAttemptClose = () => {
+    // If modal is in success view, close immediately
+    if (modalView === 'success') {
+      onClose();
+      return;
+    }
+    // If user has typed anything dirty, prompt confirmation
+    if (isDirty || (enteredAmount && Number(enteredAmount) > 0) || enteredTitle) {
+      setModalView('confirm_discard');
+    } else {
+      onClose();
+    }
+  };
 
   const handleFormSubmit = async (data: TransactionFormData) => {
+    // 1. Validation check for category in expense/income mode
+    if (activeType !== 'transfer' && !data.category_id) {
+      setCategoryError('Please select a category.');
+      return;
+    }
+    setCategoryError(null);
+
+    // 2. Validation check for transfer accounts
+    if (activeType === 'transfer') {
+      if (!data.account_id || !data.to_account_id) {
+        setErrorMessage('Please select both source and destination accounts.');
+        setModalView('error');
+        return;
+      }
+      if (Number(data.account_id) === Number(data.to_account_id)) {
+        setErrorMessage('Source and destination accounts must be different.');
+        setModalView('error');
+        return;
+      }
+    }
+
     setIsSubmitting(true);
-    setError(null);
     try {
       if (activeType === 'transfer') {
-        const fromAccount = accounts.find((a) => a.id === Number(data.account_id));
-        const toAccount = accounts.find((a) => a.id === Number(data.to_account_id));
-        const txDate = data.expense_date ? `${data.expense_date}T12:00:00` : undefined;
-
-        // Record transfer out from source account
-        await onSubmit({
-          title: data.title || `Transfer to ${toAccount ? toAccount.name : 'Account'}`,
+        const fromAcc = accounts.find((a) => a.id === Number(data.account_id));
+        const toAcc = accounts.find((a) => a.id === Number(data.to_account_id));
+        await transferService.createTransfer({
+          from_account_id: Number(data.account_id),
+          to_account_id: Number(data.to_account_id),
           amount: data.amount,
-          transaction_type: 'transfer',
-          category: 'Transfer',
-          account_id: data.account_id ? Number(data.account_id) : null,
-          expense_date: txDate,
-          notes: data.notes || (toAccount ? `Transfer to ${toAccount.name}` : undefined),
+          description: data.title ? data.title.trim() : undefined,
+          date: data.expense_date ? `${data.expense_date}T12:00:00` : undefined,
         });
 
-        // If a destination account was picked, record matching transfer in
-        if (toAccount && (!initialData || data.to_account_id)) {
-          await onSubmit({
-            title: `Transfer from ${fromAccount ? fromAccount.name : 'Account'}`,
-            amount: data.amount,
-            transaction_type: 'transfer',
-            category: 'Transfer',
-            account_id: toAccount.id,
-            expense_date: txDate,
-            notes: data.notes || (fromAccount ? `Transfer from ${fromAccount.name}` : undefined),
-          });
-        }
+        setSavedSummary({
+          amount: data.amount,
+          title: data.title ? data.title.trim() : `Transfer to ${toAcc?.name || 'Account'}`,
+          categoryName: `Transfer: ${fromAcc?.name} → ${toAcc?.name}`,
+          categoryIcon: 'ArrowLeftRight',
+          type: 'transfer',
+          date: data.expense_date,
+        });
       } else {
-        const selectedCat = categories.find((c) => c.id === Number(data.category_id));
+        const cat = categories.find((c) => c.id === Number(data.category_id));
+        const fallbackTitle = cat ? cat.name : activeType === 'income' ? 'Income' : 'Expense';
+        const displayTitle = data.title && data.title.trim() ? data.title.trim() : fallbackTitle;
+
         await onSubmit({
-          title: data.title,
+          title: displayTitle,
           amount: data.amount,
           transaction_type: activeType,
-          category: selectedCat ? selectedCat.name : 'Uncategorized',
+          category: cat ? cat.name : 'Uncategorized',
           category_id: data.category_id ? Number(data.category_id) : null,
           subcategory_id: data.subcategory_id ? Number(data.subcategory_id) : null,
           account_id: data.account_id ? Number(data.account_id) : null,
           expense_date: data.expense_date ? `${data.expense_date}T12:00:00` : undefined,
           notes: data.notes || undefined,
         });
+
+        setSavedSummary({
+          amount: data.amount,
+          title: displayTitle,
+          categoryName: cat ? cat.name : 'Uncategorized',
+          categoryIcon: cat?.icon || 'Folder',
+          type: activeType,
+          date: data.expense_date,
+        });
       }
-      onClose();
+
+      setModalView('success');
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to save transaction.');
+      const msg = err?.response?.data?.detail || err?.message || 'We could not reach the server.';
+      setErrorMessage(typeof msg === 'string' ? msg : 'Network or server error.');
+      setModalView('error');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const filteredCategories = categories.filter((c) => c.category_type === activeType);
-
-  const getSubmitLabel = () => {
-    if (isSubmitting) return 'Saving...';
-    if (initialData) return 'Save changes';
-    if (activeType === 'expense') return 'Add expense';
-    if (activeType === 'income') return 'Add income';
-    return 'Record transfer';
+  const handleResetForAnother = () => {
+    reset({
+      title: '',
+      amount: '' as any,
+      transaction_type: activeType,
+      category_id: null,
+      subcategory_id: null,
+      account_id: accounts.length > 0 ? accounts[0].id : null,
+      to_account_id: accounts.length > 1 ? accounts[1].id : null,
+      expense_date: new Date().toISOString().split('T')[0],
+      notes: '',
+    });
+    setCategoryError(null);
+    setErrorMessage('');
+    setModalView('form');
   };
 
+  // Filter categories by active type
+  const availableCategories = categories.filter((c) => c.category_type === activeType);
+
+  const CategoryIconComponent = selectedCategory
+    ? ICON_MAP[selectedCategory.icon] || Folder
+    : Folder;
+
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
       <div
-        className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-[#E8E6DF] animate-in fade-in duration-150"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-[#E8E6DF]">
-          <h2 className="text-base font-bold text-neutral-900">
-            {initialData ? 'Edit transaction' : 'Add transaction'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-1 rounded-md text-neutral-400 hover:text-neutral-700 transition cursor-pointer"
-            aria-label="Close"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+        className="fixed inset-0 bg-[#20251F]/40 backdrop-blur-xs transition-opacity"
+        onClick={handleAttemptClose}
+      />
 
-        {/* 3-Segment Type Toggle: Expense | Income | Transfer */}
-        <div className="grid grid-cols-3 gap-1 p-1 bg-neutral-100 rounded-xl my-4">
-          <button
-            type="button"
-            onClick={() => handleTypeToggle('expense')}
-            className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition ${
-              activeType === 'expense'
-                ? 'bg-white text-rose-700 shadow-2xs font-bold'
-                : 'text-neutral-600 hover:text-neutral-900'
-            }`}
-          >
-            <ArrowDownRight className="w-3.5 h-3.5 text-rose-600" />
-            <span>Expense</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => handleTypeToggle('income')}
-            className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition ${
-              activeType === 'income'
-                ? 'bg-white text-[#164A3A] shadow-2xs font-bold'
-                : 'text-neutral-600 hover:text-neutral-900'
-            }`}
-          >
-            <ArrowUpRight className="w-3.5 h-3.5 text-[#164A3A]" />
-            <span>Income</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => handleTypeToggle('transfer')}
-            className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition ${
-              activeType === 'transfer'
-                ? 'bg-white text-neutral-900 shadow-2xs font-bold'
-                : 'text-neutral-600 hover:text-neutral-900'
-            }`}
-          >
-            <ArrowLeftRight className="w-3.5 h-3.5 text-neutral-700" />
-            <span>Transfer</span>
-          </button>
-        </div>
+      {/* Modal Dialog (24px radius, calm ivory/stone palette) */}
+      <div className="relative w-full max-w-[480px] bg-white rounded-[24px] border border-[#DDD7CB] shadow-2xl overflow-hidden p-6 sm:p-7 z-10 transition-all">
+        {/* ── Close Button ── */}
+        <button
+          onClick={handleAttemptClose}
+          className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center rounded-full text-[#6B7268] hover:text-[#20251F] hover:bg-[#F6F2E9] transition-colors"
+          aria-label="Close"
+        >
+          <X className="w-5 h-5" />
+        </button>
 
-        {error && (
-          <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-lg">
-            {error}
+        {/* ════════════════ VIEW: SUCCESS STATE (State 5) ════════════════ */}
+        {modalView === 'success' && savedSummary && (
+          <div className="text-center py-4 space-y-6">
+            <div className="w-16 h-16 mx-auto rounded-full bg-[#EAF4EE] flex items-center justify-center text-[#2E7D5B]">
+              <Check className="w-8 h-8 stroke-[2.5]" />
+            </div>
+
+            <div className="space-y-1.5">
+              <h2 className="text-2xl font-normal text-[#20251F]">Transaction added</h2>
+              <p className="text-base text-[#6B7268]">
+                <span className="font-medium text-[#20251F] kf-tnum">
+                  {formatAmount(savedSummary.amount)}
+                </span>{' '}
+                {savedSummary.type === 'expense'
+                  ? `spent on ${savedSummary.categoryName}`
+                  : savedSummary.type === 'income'
+                  ? `earned from ${savedSummary.categoryName}`
+                  : savedSummary.categoryName}
+              </p>
+              <p className="text-xs text-[#8E948B] pt-0.5">
+                {new Date(savedSummary.date).toLocaleDateString('en-GB', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                })}
+              </p>
+            </div>
+
+            {/* Transaction Card */}
+            <div className="bg-[#F6F2E9]/70 border border-[#DDD7CB] rounded-[18px] p-4 flex items-center gap-3.5 text-left">
+              <div className="w-10 h-10 rounded-xl bg-white border border-[#DDD7CB] flex items-center justify-center text-[#D99A37] shrink-0">
+                <CategoryIconComponent className="w-5 h-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-[#20251F] truncate">
+                  {savedSummary.title}
+                </p>
+                <p className="text-xs text-[#8E948B] truncate">
+                  {enteredTitle && enteredTitle.trim() ? savedSummary.categoryName : 'No description provided'}
+                </p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                type="button"
+                onClick={handleResetForAnother}
+                className="w-full py-3 px-4 rounded-[14px] bg-[#20251F] text-white hover:bg-[#313830] font-medium text-sm transition-colors"
+              >
+                Add another
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full py-3 px-4 rounded-[14px] bg-[#F6F2E9] text-[#20251F] hover:bg-[#DDD7CB] font-medium text-sm transition-colors border border-[#DDD7CB]"
+              >
+                Done
+              </button>
+            </div>
           </div>
         )}
 
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-3.5">
-          {/* Amount Field (Hero Number) */}
-          <div>
-            <label className="block text-xs font-medium text-neutral-500 mb-1">
-              Amount ({symbol})
-            </label>
-            <div className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 font-semibold text-lg">
-                {symbol}
-              </span>
-              <input
-                type="number"
-                step="0.01"
-                placeholder="0.00"
-                autoFocus
-                {...register('amount')}
-                className="w-full pl-9 pr-3.5 py-2.5 border border-[#E8E6DF] rounded-xl text-xl font-bold text-neutral-900 outline-none transition focus:border-[#164A3A]"
-              />
+        {/* ════════════════ VIEW: ERROR STATE (State 6) ════════════════ */}
+        {modalView === 'error' && (
+          <div className="text-center py-4 space-y-6">
+            <div className="w-16 h-16 mx-auto rounded-full bg-[#FEF3EE] flex items-center justify-center text-[#C2410C]">
+              <AlertCircle className="w-8 h-8 stroke-[2]" />
             </div>
-            {errors.amount && (
-              <p className="mt-1 text-xs text-rose-600">{errors.amount.message}</p>
-            )}
+
+            <div className="space-y-1.5">
+              <h2 className="text-2xl font-normal text-[#20251F]">Could not save transaction</h2>
+              <p className="text-sm text-[#6B7268] max-w-sm mx-auto">
+                Please try again. If the problem persists, check your connection and try later.
+              </p>
+            </div>
+
+            {/* Error Message Box */}
+            <div className="bg-[#FEF3EE]/80 border border-[#FDBA74] rounded-[18px] p-4 text-left flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-[#C2410C] shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-[#C2410C]">Save error</p>
+                <p className="text-xs text-[#9A3412] mt-0.5">{errorMessage}</p>
+              </div>
+            </div>
+
+            {/* Action Buttons: Preserves entered data */}
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setModalView('form')}
+                className="w-full py-3 px-4 rounded-[14px] bg-[#D99A37] text-white hover:bg-[#C5882B] font-medium text-sm transition-colors"
+              >
+                Try again
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full py-3 px-4 rounded-[14px] bg-[#F6F2E9] text-[#20251F] hover:bg-[#DDD7CB] font-medium text-sm transition-colors border border-[#DDD7CB]"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
+        )}
 
-          {/* Title / Description */}
-          <div>
-            <label className="block text-xs font-medium text-neutral-500 mb-1">
-              Description
-            </label>
-            <input
-              type="text"
-              placeholder={
-                activeType === 'expense'
-                  ? 'e.g. Groceries, Dinner, Metro'
-                  : activeType === 'income'
-                  ? 'e.g. Salary, Client payout, Dividend'
-                  : 'e.g. Move to savings, ATM withdrawal'
-              }
-              {...register('title')}
-              className="w-full px-3.5 py-2 border border-[#E8E6DF] rounded-xl text-sm text-neutral-900 outline-none transition focus:border-[#164A3A]"
-            />
-            {errors.title && (
-              <p className="mt-1 text-xs text-rose-600">{errors.title.message}</p>
-            )}
+        {/* ════════════════ VIEW: CONFIRM DISCARD (State 7) ════════════════ */}
+        {modalView === 'confirm_discard' && (
+          <div className="text-center py-4 space-y-6">
+            <div className="w-16 h-16 mx-auto rounded-full bg-[#FEF8ED] flex items-center justify-center text-[#D99A37]">
+              <AlertTriangle className="w-8 h-8 stroke-[2]" />
+            </div>
+
+            <div className="space-y-1.5">
+              <h2 className="text-2xl font-normal text-[#20251F]">Discard changes?</h2>
+              <p className="text-sm text-[#6B7268] max-w-sm mx-auto">
+                You have unsaved changes. If you close this window, your entered information will be lost.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full py-3 px-4 rounded-[14px] bg-[#D99A37] text-white hover:bg-[#C5882B] font-medium text-sm transition-colors"
+              >
+                Discard
+              </button>
+              <button
+                type="button"
+                onClick={() => setModalView('form')}
+                className="w-full py-3 px-4 rounded-[14px] bg-[#F6F2E9] text-[#20251F] hover:bg-[#DDD7CB] font-medium text-sm transition-colors border border-[#DDD7CB]"
+              >
+                Keep editing
+              </button>
+            </div>
           </div>
+        )}
 
-          {/* Account & Category (or Transfer from/to) */}
-          {activeType === 'transfer' ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-neutral-500 mb-1">
-                  From Account
-                </label>
-                <select
-                  {...register('account_id')}
-                  className="w-full px-3 py-2 border border-[#E8E6DF] rounded-xl text-xs text-neutral-900 outline-none bg-white"
-                >
-                  <option value="">Select source</option>
-                  {accounts.map((acc) => (
-                    <option key={acc.id} value={acc.id}>
-                      {acc.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-neutral-500 mb-1">
-                  To Account
-                </label>
-                <select
-                  {...register('to_account_id')}
-                  className="w-full px-3 py-2 border border-[#E8E6DF] rounded-xl text-xs text-neutral-900 outline-none bg-white"
-                >
-                  <option value="">Select destination</option>
-                  {accounts.map((acc) => (
-                    <option key={acc.id} value={acc.id}>
-                      {acc.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+        {/* ════════════════ VIEW: DEFAULT FORM (States 1, 2, 3, 4, 8) ════════════════ */}
+        {modalView === 'form' && (
+          <div className="space-y-5">
+            {/* Header */}
+            <div>
+              <h2 className="text-xl font-medium text-[#20251F]">Add transaction</h2>
+              <p className="text-xs text-[#6B7268] mt-0.5">Record your money movement</p>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-neutral-500 mb-1">
-                  Account
-                </label>
-                <select
-                  {...register('account_id')}
-                  className="w-full px-3 py-2 border border-[#E8E6DF] rounded-xl text-xs text-neutral-900 outline-none bg-white"
-                >
-                  <option value="">Select Account</option>
-                  {accounts.map((acc) => (
-                    <option key={acc.id} value={acc.id}>
-                      {acc.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
 
-              <div>
-                <label className="block text-xs font-medium text-neutral-500 mb-1">
-                  Category
-                </label>
-                <select
-                  {...register('category_id')}
-                  className="w-full px-3 py-2 border border-[#E8E6DF] rounded-xl text-xs text-neutral-900 outline-none bg-white"
-                >
-                  <option value="">Uncategorized</option>
-                  {filteredCategories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* 3-Segment Type Toggle (Expense | Income | Transfer) */}
+            <div className="grid grid-cols-3 gap-1 p-1 bg-[#F6F2E9] border border-[#DDD7CB] rounded-[16px]">
+              <button
+                type="button"
+                onClick={() => handleTypeToggle('expense')}
+                className={`py-2 px-3 text-xs font-medium rounded-[12px] flex items-center justify-center gap-1.5 transition-all ${
+                  activeType === 'expense'
+                    ? 'bg-[#20251F] text-white shadow-xs'
+                    : 'text-[#6B7268] hover:text-[#20251F]'
+                }`}
+              >
+                <ArrowDownRight className="w-3.5 h-3.5" />
+                <span>Expense</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleTypeToggle('income')}
+                className={`py-2 px-3 text-xs font-medium rounded-[12px] flex items-center justify-center gap-1.5 transition-all ${
+                  activeType === 'income'
+                    ? 'bg-[#20251F] text-white shadow-xs'
+                    : 'text-[#6B7268] hover:text-[#20251F]'
+                }`}
+              >
+                <ArrowUpRight className="w-3.5 h-3.5" />
+                <span>Income</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleTypeToggle('transfer')}
+                className={`py-2 px-3 text-xs font-medium rounded-[12px] flex items-center justify-center gap-1.5 transition-all ${
+                  activeType === 'transfer'
+                    ? 'bg-[#20251F] text-white shadow-xs'
+                    : 'text-[#6B7268] hover:text-[#20251F]'
+                }`}
+              >
+                <ArrowLeftRight className="w-3.5 h-3.5" />
+                <span>Transfer</span>
+              </button>
             </div>
-          )}
 
-          {/* Collapsible More Options (Date, Subcategory, Notes) */}
-          <div className="pt-1">
-            <button
-              type="button"
-              onClick={() => setShowMoreOptions(!showMoreOptions)}
-              className="text-xs font-medium text-neutral-500 hover:text-neutral-800 flex items-center gap-1 transition"
-            >
-              <span>{showMoreOptions ? 'Fewer options' : 'More options (date, notes)'}</span>
-              {showMoreOptions ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-            </button>
-
-            {showMoreOptions && (
-              <div className="space-y-3 pt-3 mt-2 border-t border-[#E8E6DF]/70 animate-in fade-in duration-100">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium text-neutral-500 mb-1">Date</label>
-                    <input
-                      type="date"
-                      {...register('expense_date')}
-                      className="w-full px-3 py-1.5 border border-[#E8E6DF] rounded-xl text-xs text-neutral-900 outline-none"
-                    />
-                  </div>
-
-                  {activeType !== 'transfer' && (
-                    <div>
-                      <label className="block text-xs font-medium text-neutral-500 mb-1">
-                        Subcategory
-                      </label>
-                      <select
-                        {...register('subcategory_id')}
-                        disabled={!selectedCategory || !selectedCategory.subcategories?.length}
-                        className="w-full px-3 py-1.5 border border-[#E8E6DF] rounded-xl text-xs text-neutral-900 outline-none bg-white disabled:opacity-50"
-                      >
-                        <option value="">None</option>
-                        {selectedCategory?.subcategories?.map((sub) => (
-                          <option key={sub.id} value={sub.id}>
-                            {sub.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-neutral-500 mb-1">
-                    Notes
-                  </label>
+            {/* Form */}
+            <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+              {/* Amount Field */}
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-[#20251F]">
+                  Amount <span className="text-[#C2410C]">*</span>
+                </label>
+                <div
+                  className={`relative flex items-center rounded-[14px] border transition-all ${
+                    errors.amount
+                      ? 'border-[#C2410C] bg-[#FEF3EE]/40 ring-1 ring-[#C2410C]/30'
+                      : 'border-[#DDD7CB] bg-white hover:border-[#C4BEB1] focus-within:border-[#D99A37] focus-within:ring-2 focus-within:ring-[#D99A37]/20'
+                  }`}
+                >
+                  <span className="pl-3.5 pr-2 text-sm font-medium text-[#6B7268] select-none">
+                    {symbol}
+                  </span>
                   <input
-                    type="text"
-                    placeholder="Optional memo..."
-                    {...register('notes')}
-                    className="w-full px-3 py-1.5 border border-[#E8E6DF] rounded-xl text-xs text-neutral-900 outline-none"
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    {...register('amount')}
+                    className="w-full py-2.5 pr-3.5 text-base font-normal text-[#20251F] bg-transparent outline-none kf-tnum"
                   />
                 </div>
+                {errors.amount && (
+                  <p className="flex items-center gap-1 text-xs text-[#C2410C] pt-0.5">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{errors.amount.message}</span>
+                  </p>
+                )}
               </div>
-            )}
-          </div>
 
-          {/* Action Buttons */}
-          <div className="flex justify-end items-center gap-2.5 pt-4 border-t border-[#E8E6DF]">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-neutral-600 hover:text-neutral-900 transition"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className={`px-5 py-2.5 text-white text-xs font-bold rounded-xl transition shadow-xs disabled:opacity-50 ${
-                activeType === 'expense'
-                  ? 'bg-neutral-900 hover:bg-neutral-800'
-                  : activeType === 'income'
-                  ? 'bg-[#164A3A] hover:bg-[#12382c]'
-                  : 'bg-neutral-800 hover:bg-neutral-700'
-              }`}
-            >
-              {getSubmitLabel()}
-            </button>
+              {/* ── EXPENSE & INCOME MODE: Category selection ── */}
+              {activeType !== 'transfer' && (
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-[#20251F]">
+                    Category <span className="text-[#C2410C]">*</span>
+                  </label>
+                  <div
+                    className={`relative rounded-[14px] border transition-all ${
+                      categoryError
+                        ? 'border-[#C2410C] bg-[#FEF3EE]/40 ring-1 ring-[#C2410C]/30'
+                        : 'border-[#DDD7CB] bg-white hover:border-[#C4BEB1] focus-within:border-[#D99A37]'
+                    }`}
+                  >
+                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#D99A37] pointer-events-none">
+                      <CategoryIconComponent className="w-4 h-4" />
+                    </div>
+                    <select
+                      {...register('category_id')}
+                      className="w-full py-2.5 pl-10 pr-8 text-sm text-[#20251F] bg-transparent rounded-[14px] outline-none appearance-none cursor-pointer"
+                      defaultValue=""
+                    >
+                      <option value="" disabled>
+                        Select a category
+                      </option>
+                      {availableCategories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {categoryError && (
+                    <p className="flex items-center gap-1 text-xs text-[#C2410C] pt-0.5">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{categoryError}</span>
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* ── TRANSFER MODE: Source & Destination Accounts (State 8) ── */}
+              {activeType === 'transfer' && (
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="block text-xs font-medium text-[#20251F]">
+                      From account <span className="text-[#C2410C]">*</span>
+                    </label>
+                    <select
+                      {...register('account_id')}
+                      className="w-full py-2.5 px-3.5 text-sm text-[#20251F] bg-white border border-[#DDD7CB] rounded-[14px] outline-none cursor-pointer hover:border-[#C4BEB1] focus:border-[#D99A37]"
+                    >
+                      {accounts.map((acc) => (
+                        <option key={acc.id} value={acc.id}>
+                          {acc.name} ({acc.account_type})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-xs font-medium text-[#20251F]">
+                      To account <span className="text-[#C2410C]">*</span>
+                    </label>
+                    <select
+                      {...register('to_account_id')}
+                      className="w-full py-2.5 px-3.5 text-sm text-[#20251F] bg-white border border-[#DDD7CB] rounded-[14px] outline-none cursor-pointer hover:border-[#C4BEB1] focus:border-[#D99A37]"
+                    >
+                      {accounts
+                        .filter((a) => a.id !== Number(selectedFromAccountId))
+                        .map((acc) => (
+                          <option key={acc.id} value={acc.id}>
+                            {acc.name} ({acc.account_type})
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {/* Description (Optional) */}
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-[#20251F]">
+                  Description (optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="What was this for?"
+                  {...register('title')}
+                  className="w-full py-2.5 px-3.5 text-sm text-[#20251F] bg-white border border-[#DDD7CB] rounded-[14px] outline-none hover:border-[#C4BEB1] focus:border-[#D99A37]"
+                />
+              </div>
+
+              {/* Date Field */}
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-[#20251F]">
+                  Date
+                </label>
+                <input
+                  type="date"
+                  {...register('expense_date')}
+                  className="w-full py-2.5 px-3.5 text-sm text-[#20251F] bg-white border border-[#DDD7CB] rounded-[14px] outline-none hover:border-[#C4BEB1] focus:border-[#D99A37] cursor-pointer"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleAttemptClose}
+                  className="w-full py-3 px-4 rounded-[14px] bg-[#F6F2E9] text-[#20251F] hover:bg-[#DDD7CB] font-medium text-sm transition-colors border border-[#DDD7CB]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full py-3 px-4 rounded-[14px] bg-[#D99A37] text-white hover:bg-[#C5882B] disabled:opacity-50 font-medium text-sm transition-colors shadow-xs"
+                >
+                  {isSubmitting
+                    ? 'Saving...'
+                    : activeType === 'transfer'
+                    ? 'Save transfer'
+                    : 'Save transaction'}
+                </button>
+              </div>
+            </form>
           </div>
-        </form>
+        )}
       </div>
     </div>
   );
