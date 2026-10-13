@@ -39,7 +39,7 @@ def get_account_balance(db: Session, account_id: int, user_id: int) -> Dict[str,
             Expense.user_id == user_id,
             Expense.account_id == account_id,
             Expense.transaction_type == "transfer",
-            Expense.title.ilike("Transfer to%"),
+            (Expense.notes.like("[TRANSFER_OUT:%") | Expense.title.ilike("Transfer to%")),
         )
         .scalar()
         or Decimal("0.00")
@@ -51,7 +51,7 @@ def get_account_balance(db: Session, account_id: int, user_id: int) -> Dict[str,
             Expense.user_id == user_id,
             Expense.account_id == account_id,
             Expense.transaction_type == "transfer",
-            Expense.title.ilike("Transfer from%"),
+            (Expense.notes.like("[TRANSFER_IN:%") | Expense.title.ilike("Transfer from%")),
         )
         .scalar()
         or Decimal("0.00")
@@ -62,6 +62,31 @@ def get_account_balance(db: Session, account_id: int, user_id: int) -> Dict[str,
         "expenses": expenses,
         "transfers_in": transfers_in,
         "transfers_out": transfers_out,
+    }
+
+
+def format_account_response(acc: Account, stats: Dict[str, Decimal]) -> Dict[str, Any]:
+    """Canonical single-source calculation for account balance."""
+    current_bal = (
+        acc.initial_balance
+        + stats["income"]
+        - stats["expenses"]
+        + stats.get("transfers_in", Decimal("0.00"))
+        - stats.get("transfers_out", Decimal("0.00"))
+    )
+    return {
+        "id": acc.id,
+        "user_id": acc.user_id,
+        "name": acc.name,
+        "account_type": acc.account_type,
+        "currency": acc.currency,
+        "initial_balance": acc.initial_balance,
+        "current_balance": current_bal,
+        "total_income": stats["income"],
+        "total_expenses": stats["expenses"],
+        "is_active": acc.is_active,
+        "created_at": acc.created_at,
+        "updated_at": acc.updated_at,
     }
 
 
@@ -79,30 +104,10 @@ def list_user_accounts(db: Session, user_id: int) -> Dict[str, Any]:
 
     for acc in accounts:
         stats = get_account_balance(db, acc.id, user_id)
-        current_bal = (
-            acc.initial_balance
-            + stats["income"]
-            - stats["expenses"]
-            + stats.get("transfers_in", Decimal("0.00"))
-            - stats.get("transfers_out", Decimal("0.00"))
-        )
+        formatted = format_account_response(acc, stats)
         if acc.is_active:
-            total_balance += current_bal
-
-        result_accounts.append({
-            "id": acc.id,
-            "user_id": acc.user_id,
-            "name": acc.name,
-            "account_type": acc.account_type,
-            "currency": acc.currency,
-            "initial_balance": acc.initial_balance,
-            "current_balance": current_bal,
-            "total_income": stats["income"],
-            "total_expenses": stats["expenses"],
-            "is_active": acc.is_active,
-            "created_at": acc.created_at,
-            "updated_at": acc.updated_at,
-        })
+            total_balance += formatted["current_balance"]
+        result_accounts.append(formatted)
 
     return {
         "accounts": result_accounts,
@@ -115,6 +120,12 @@ def get_account_by_id(db: Session, account_id: int, user_id: int) -> Account:
     if not acc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found.")
     return acc
+
+
+def get_account_detail(db: Session, account_id: int, user_id: int) -> Dict[str, Any]:
+    acc = get_account_by_id(db, account_id, user_id)
+    stats = get_account_balance(db, acc.id, user_id)
+    return format_account_response(acc, stats)
 
 
 def create_account(db: Session, account_in: AccountCreate, user_id: int) -> Dict[str, Any]:
@@ -155,7 +166,13 @@ def update_account(db: Session, account_id: int, account_in: AccountUpdate, user
     db.refresh(acc)
 
     stats = get_account_balance(db, acc.id, user_id)
-    current_bal = acc.initial_balance + stats["income"] - stats["expenses"]
+    current_bal = (
+        acc.initial_balance
+        + stats["income"]
+        - stats["expenses"]
+        + stats.get("transfers_in", Decimal("0.00"))
+        - stats.get("transfers_out", Decimal("0.00"))
+    )
 
     return {
         "id": acc.id,

@@ -16,13 +16,42 @@ def create_expense(db: Session, expense_in: ExpenseCreate, user_id: int) -> Expe
     """Create a new transaction (expense or income) for the user."""
     category_name = expense_in.category or "Uncategorized"
     
-    if expense_in.category_id:
+    # 1. Enforce category ownership if category_id provided
+    if expense_in.category_id is not None:
         category_obj = db.query(Category).filter(
             Category.id == expense_in.category_id,
             Category.user_id == user_id
         ).first()
-        if category_obj:
-            category_name = category_obj.name
+        if not category_obj:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Category not found or access denied."
+            )
+        category_name = category_obj.name
+
+    # 2. Enforce subcategory ownership if subcategory_id provided
+    if expense_in.subcategory_id is not None:
+        subcat_obj = db.query(Category).filter(
+            Category.id == expense_in.subcategory_id,
+            Category.user_id == user_id
+        ).first()
+        if not subcat_obj:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Subcategory not found or access denied."
+            )
+
+    # 3. Enforce account ownership if account_id provided
+    if expense_in.account_id is not None:
+        account_obj = db.query(Account).filter(
+            Account.id == expense_in.account_id,
+            Account.user_id == user_id
+        ).first()
+        if not account_obj:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Account not found or access denied."
+            )
 
     # If expense_date is not passed, default explicitly to current timestamp
     tx_date = expense_in.expense_date or datetime.now()
@@ -198,13 +227,39 @@ def update_expense(
 
     update_data = expense_in.model_dump(exclude_unset=True)
 
-    if "category_id" in update_data and update_data["category_id"]:
+    if "category_id" in update_data and update_data["category_id"] is not None:
         category_obj = db.query(Category).filter(
             Category.id == update_data["category_id"],
             Category.user_id == user_id
         ).first()
-        if category_obj:
-            update_data["category"] = category_obj.name
+        if not category_obj:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Category not found or access denied."
+            )
+        update_data["category"] = category_obj.name
+
+    if "subcategory_id" in update_data and update_data["subcategory_id"] is not None:
+        subcat_obj = db.query(Category).filter(
+            Category.id == update_data["subcategory_id"],
+            Category.user_id == user_id
+        ).first()
+        if not subcat_obj:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Subcategory not found or access denied."
+            )
+
+    if "account_id" in update_data and update_data["account_id"] is not None:
+        account_obj = db.query(Account).filter(
+            Account.id == update_data["account_id"],
+            Account.user_id == user_id
+        ).first()
+        if not account_obj:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Account not found or access denied."
+            )
 
     for field, value in update_data.items():
         setattr(expense, field, value)
