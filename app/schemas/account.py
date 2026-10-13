@@ -8,7 +8,7 @@ class AccountBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     account_type: str = Field("bank", max_length=50)  # bank, cash, savings, credit_card, investment
     currency: str = Field("EUR", min_length=3, max_length=3)
-    initial_balance: Decimal = Field(Decimal("0.00"), decimal_places=2)
+    initial_balance: Optional[Decimal] = Field(None, decimal_places=2)
 
 
 class AccountCreate(AccountBase):
@@ -27,7 +27,8 @@ class AccountResponse(AccountBase):
     id: int
     user_id: int
     is_active: bool
-    current_balance: Decimal
+    current_balance: Optional[Decimal] = None
+    is_balance_set: bool = False
     total_income: Decimal
     total_expenses: Decimal
     created_at: datetime
@@ -38,4 +39,5 @@ class AccountResponse(AccountBase):
 
 class AccountListResponse(BaseModel):
     accounts: List[AccountResponse]
-    total_balance: Decimal
+    total_balance: Optional[Decimal] = None
+    is_balance_set: bool = False

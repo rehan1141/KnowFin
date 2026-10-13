@@ -17,7 +17,8 @@ class MonthlySummaryResponse(BaseModel):
     fixed_expenses: Decimal
     variable_expenses: Decimal
     average_daily_spending: Decimal
-    total_balance: Decimal
+    total_balance: Optional[Decimal] = None
+    is_balance_set: bool = False
 
 
 class CategorySpending(BaseModel):

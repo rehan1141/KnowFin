@@ -79,14 +79,17 @@ def get_account_balance(db: Session, account_id: int, user_id: int) -> Dict[str,
 
 def format_account_response(acc: Account, stats: Dict[str, Decimal]) -> Dict[str, Any]:
     """Canonical single-source calculation for account balance."""
-    current_bal = (
-        acc.initial_balance
-        + stats["income"]
-        + stats.get("refunds", Decimal("0.00"))
-        - stats["expenses"]
-        + stats.get("transfers_in", Decimal("0.00"))
-        - stats.get("transfers_out", Decimal("0.00"))
-    )
+    is_balance_set = acc.initial_balance is not None
+    current_bal = None
+    if is_balance_set:
+        current_bal = (
+            acc.initial_balance
+            + stats["income"]
+            + stats.get("refunds", Decimal("0.00"))
+            - stats["expenses"]
+            + stats.get("transfers_in", Decimal("0.00"))
+            - stats.get("transfers_out", Decimal("0.00"))
+        )
     return {
         "id": acc.id,
         "user_id": acc.user_id,
@@ -95,6 +98,7 @@ def format_account_response(acc: Account, stats: Dict[str, Decimal]) -> Dict[str
         "currency": acc.currency,
         "initial_balance": acc.initial_balance,
         "current_balance": current_bal,
+        "is_balance_set": is_balance_set,
         "total_income": stats["income"],
         "total_expenses": stats["expenses"],
         "is_active": acc.is_active,
@@ -114,17 +118,20 @@ def list_user_accounts(db: Session, user_id: int) -> Dict[str, Any]:
 
     result_accounts = []
     total_balance = Decimal("0.00")
+    has_any_set_balance = False
 
     for acc in accounts:
         stats = get_account_balance(db, acc.id, user_id)
         formatted = format_account_response(acc, stats)
-        if acc.is_active:
+        if acc.is_active and formatted["is_balance_set"] and formatted["current_balance"] is not None:
             total_balance += formatted["current_balance"]
+            has_any_set_balance = True
         result_accounts.append(formatted)
 
     return {
         "accounts": result_accounts,
-        "total_balance": total_balance,
+        "total_balance": total_balance if has_any_set_balance else None,
+        "is_balance_set": has_any_set_balance,
     }
 
 
@@ -153,21 +160,8 @@ def create_account(db: Session, account_in: AccountCreate, user_id: int) -> Dict
     db.add(acc)
     db.commit()
     db.refresh(acc)
-
-    return {
-        "id": acc.id,
-        "user_id": acc.user_id,
-        "name": acc.name,
-        "account_type": acc.account_type,
-        "currency": acc.currency,
-        "initial_balance": acc.initial_balance,
-        "current_balance": acc.initial_balance,
-        "total_income": Decimal("0.00"),
-        "total_expenses": Decimal("0.00"),
-        "is_active": acc.is_active,
-        "created_at": acc.created_at,
-        "updated_at": acc.updated_at,
-    }
+    stats = get_account_balance(db, acc.id, user_id)
+    return format_account_response(acc, stats)
 
 
 def update_account(db: Session, account_id: int, account_in: AccountUpdate, user_id: int) -> Dict[str, Any]:
@@ -177,30 +171,8 @@ def update_account(db: Session, account_id: int, account_in: AccountUpdate, user
         setattr(acc, field, val)
     db.commit()
     db.refresh(acc)
-
     stats = get_account_balance(db, acc.id, user_id)
-    current_bal = (
-        acc.initial_balance
-        + stats["income"]
-        - stats["expenses"]
-        + stats.get("transfers_in", Decimal("0.00"))
-        - stats.get("transfers_out", Decimal("0.00"))
-    )
-
-    return {
-        "id": acc.id,
-        "user_id": acc.user_id,
-        "name": acc.name,
-        "account_type": acc.account_type,
-        "currency": acc.currency,
-        "initial_balance": acc.initial_balance,
-        "current_balance": current_bal,
-        "total_income": stats["income"],
-        "total_expenses": stats["expenses"],
-        "is_active": acc.is_active,
-        "created_at": acc.created_at,
-        "updated_at": acc.updated_at,
-    }
+    return format_account_response(acc, stats)
 
 
 def delete_account(db: Session, account_id: int, user_id: int) -> None:

@@ -137,7 +137,7 @@ def seed_user_default_data(db: Session, user_id: int, currency: str = "EUR") -> 
             name="Main Bank",
             account_type="bank",
             currency=currency,
-            initial_balance=Decimal("1500.00"),
+            initial_balance=None,
             is_active=True,
         )
         cash_acc = Account(
@@ -145,7 +145,7 @@ def seed_user_default_data(db: Session, user_id: int, currency: str = "EUR") -> 
             name="Cash",
             account_type="cash",
             currency=currency,
-            initial_balance=Decimal("100.00"),
+            initial_balance=None,
             is_active=True,
         )
         savings_acc = Account(
@@ -153,7 +153,7 @@ def seed_user_default_data(db: Session, user_id: int, currency: str = "EUR") -> 
             name="Savings",
             account_type="savings",
             currency=currency,
-            initial_balance=Decimal("500.00"),
+            initial_balance=None,
             is_active=True,
         )
         db.add_all([bank_acc, cash_acc, savings_acc])

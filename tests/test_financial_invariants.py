@@ -249,3 +249,27 @@ def test_recurring_plans_do_not_inflate_monthly_spending():
     summary = client.get("/api/v1/analytics/summary?month=10&year=2026", headers=headers).json()
     assert float(summary["total_spent"]) == 0.00
     assert float(summary.get("net_spending", 0)) == 0.00
+
+
+def test_unset_opening_balance_distinguishable_from_zero():
+    headers = create_user_headers()
+
+    # 1. Unset opening balance
+    acc_unset = client.post(
+        "/api/v1/accounts/",
+        json={"name": "Unset Account", "account_type": "bank", "currency": "EUR"},
+        headers=headers,
+    ).json()
+    assert acc_unset["initial_balance"] is None
+    assert acc_unset["current_balance"] is None
+    assert acc_unset["is_balance_set"] is False
+
+    # 2. Explicit zero opening balance
+    acc_zero = client.post(
+        "/api/v1/accounts/",
+        json={"name": "Zero Account", "account_type": "bank", "currency": "EUR", "initial_balance": 0.00},
+        headers=headers,
+    ).json()
+    assert float(acc_zero["initial_balance"]) == 0.00
+    assert float(acc_zero["current_balance"]) == 0.00
+    assert acc_zero["is_balance_set"] is True
