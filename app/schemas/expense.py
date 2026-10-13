@@ -8,7 +8,7 @@ class ExpenseBase(BaseModel):
     """Base schema for transaction/expense fields."""
     title: str = Field(..., min_length=1, max_length=255)
     amount: Decimal = Field(..., gt=0, decimal_places=2)
-    transaction_type: str = Field("expense", pattern="^(expense|income|transfer)$")
+    transaction_type: str = Field("expense", pattern="^(expense|income|transfer|refund)$")
     category: Optional[str] = Field("Uncategorized", max_length=50)
     category_id: Optional[int] = None
     subcategory_id: Optional[int] = None
@@ -26,7 +26,7 @@ class ExpenseUpdate(BaseModel):
     """Schema for updating an existing transaction (all fields optional)."""
     title: Optional[str] = Field(None, min_length=1, max_length=255)
     amount: Optional[Decimal] = Field(None, gt=0, decimal_places=2)
-    transaction_type: Optional[str] = Field(None, pattern="^(expense|income|transfer)$")
+    transaction_type: Optional[str] = Field(None, pattern="^(expense|income|transfer|refund)$")
     category: Optional[str] = Field(None, max_length=50)
     category_id: Optional[int] = None
     subcategory_id: Optional[int] = None
@@ -57,3 +57,5 @@ class PaginatedExpenseResponse(BaseModel):
     pages: int
     total_income: Optional[Decimal] = Decimal("0.00")
     total_expenses: Optional[Decimal] = Decimal("0.00")
+    total_refunds: Optional[Decimal] = Decimal("0.00")
+    net_expenses: Optional[Decimal] = Decimal("0.00")

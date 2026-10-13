@@ -12,9 +12,9 @@ from app.services.account_service import list_user_accounts
 
 
 def get_monthly_summary(db: Session, user_id: int, month: int, year: int) -> Dict[str, Any]:
-    """Calculate total income, expenses, net savings, savings rate, and daily averages using SQL."""
-    # 1. Total Expenses
-    total_spent = (
+    """Calculate total income, expenses, refunds, net spending, net savings, and daily averages."""
+    # 1. Gross Expenses
+    gross_spending = (
         db.query(func.coalesce(func.sum(Expense.amount), Decimal("0.00")))
         .filter(
             Expense.user_id == user_id,
@@ -26,7 +26,23 @@ def get_monthly_summary(db: Session, user_id: int, month: int, year: int) -> Dic
         or Decimal("0.00")
     )
 
-    # 2. Total Income
+    # 2. Total Refunds
+    total_refunds = (
+        db.query(func.coalesce(func.sum(Expense.amount), Decimal("0.00")))
+        .filter(
+            Expense.user_id == user_id,
+            Expense.transaction_type == "refund",
+            extract("month", Expense.expense_date) == month,
+            extract("year", Expense.expense_date) == year,
+        )
+        .scalar()
+        or Decimal("0.00")
+    )
+
+    # Net spending = gross spending - refunds
+    net_spending = max(Decimal("0.00"), gross_spending - total_refunds)
+
+    # 3. Total Income (Refunds are NOT ordinary income!)
     total_income = (
         db.query(func.coalesce(func.sum(Expense.amount), Decimal("0.00")))
         .filter(
@@ -39,7 +55,7 @@ def get_monthly_summary(db: Session, user_id: int, month: int, year: int) -> Dic
         or Decimal("0.00")
     )
 
-    # 3. Total Transaction Count
+    # 4. Total Transaction Count
     total_tx_count = (
         db.query(func.count(Expense.id))
         .filter(
@@ -51,31 +67,21 @@ def get_monthly_summary(db: Session, user_id: int, month: int, year: int) -> Dic
         or 0
     )
 
-    # 4. Fixed Expenses this month (from Recurring Transactions)
-    fixed_expenses = (
-        db.query(func.coalesce(func.sum(RecurringTransaction.amount), Decimal("0.00")))
-        .filter(
-            RecurringTransaction.user_id == user_id,
-            RecurringTransaction.transaction_type == "expense",
-            RecurringTransaction.is_active.is_(True),
-        )
-        .scalar()
-        or Decimal("0.00")
-    )
+    # 5. Fixed vs Variable: recurring plans are templates, not proof of completed payments
+    fixed_expenses = Decimal("0.00")
+    variable_expenses = net_spending
 
-    variable_expenses = max(Decimal("0.00"), total_spent - fixed_expenses)
-
-    # 5. Net savings & Savings rate
-    net_savings = total_income - total_spent
+    # 6. Net savings & Savings rate
+    net_savings = total_income - net_spending
     savings_rate = 0.0
     if total_income > 0:
         savings_rate = round(float(net_savings / total_income * 100), 1)
 
-    # 6. Average daily spending
+    # 7. Average daily spending based on net spending
     _, days_in_month = calendar.monthrange(year, month)
-    avg_daily = round(total_spent / Decimal(days_in_month), 2) if days_in_month > 0 else Decimal("0.00")
+    avg_daily = round(net_spending / Decimal(days_in_month), 2) if days_in_month > 0 else Decimal("0.00")
 
-    # 7. Total available balance across all user accounts
+    # 8. Total available balance across all user accounts
     accounts_info = list_user_accounts(db, user_id)
     total_balance = accounts_info["total_balance"]
 
@@ -83,7 +89,10 @@ def get_monthly_summary(db: Session, user_id: int, month: int, year: int) -> Dic
         "month": month,
         "year": year,
         "total_income": total_income,
-        "total_spent": total_spent,
+        "total_spent": gross_spending,
+        "gross_spending": gross_spending,
+        "total_refunds": total_refunds,
+        "net_spending": net_spending,
         "net_savings": net_savings,
         "savings_rate": savings_rate,
         "total_transactions": total_tx_count,

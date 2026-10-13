@@ -33,6 +33,17 @@ def get_account_balance(db: Session, account_id: int, user_id: int) -> Dict[str,
         or Decimal("0.00")
     )
 
+    refunds = (
+        db.query(func.coalesce(func.sum(Expense.amount), Decimal("0.00")))
+        .filter(
+            Expense.user_id == user_id,
+            Expense.account_id == account_id,
+            Expense.transaction_type == "refund",
+        )
+        .scalar()
+        or Decimal("0.00")
+    )
+
     transfers_out = (
         db.query(func.coalesce(func.sum(Expense.amount), Decimal("0.00")))
         .filter(
@@ -60,6 +71,7 @@ def get_account_balance(db: Session, account_id: int, user_id: int) -> Dict[str,
     return {
         "income": income,
         "expenses": expenses,
+        "refunds": refunds,
         "transfers_in": transfers_in,
         "transfers_out": transfers_out,
     }
@@ -70,6 +82,7 @@ def format_account_response(acc: Account, stats: Dict[str, Decimal]) -> Dict[str
     current_bal = (
         acc.initial_balance
         + stats["income"]
+        + stats.get("refunds", Decimal("0.00"))
         - stats["expenses"]
         + stats.get("transfers_in", Decimal("0.00"))
         - stats.get("transfers_out", Decimal("0.00"))

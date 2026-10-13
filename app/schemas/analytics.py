@@ -8,6 +8,9 @@ class MonthlySummaryResponse(BaseModel):
     year: int
     total_income: Decimal
     total_spent: Decimal
+    gross_spending: Decimal = Decimal("0.00")
+    total_refunds: Decimal = Decimal("0.00")
+    net_spending: Decimal = Decimal("0.00")
     net_savings: Decimal
     savings_rate: float
     total_transactions: int
