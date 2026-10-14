@@ -2,22 +2,53 @@
 
 @layer base {
   :root {
-    /* ── KnowFin Approved Design Palette ── */
+    /* ── KnowFin Foundation Palette ── */
     --kf-ink: #20251F;
     --kf-ivory: #F6F2E9;
     --kf-stone: #DDD7CB;
     --kf-stone-light: #ECE8DF;
+    --kf-surface: #FFFFFF;
+
+    /* ── KnowFin Expressive Accent Palette ── */
     --kf-amber: #D99A37;
     --kf-amber-hover: #C5882B;
-    --kf-surface: #FFFFFF;
-    
-    /* ── Financial Semantics (Subtle & Restrained) ── */
-    --kf-income: #2E7D5B;
-    --kf-income-bg: #EAF4EE;
-    --kf-expense: #C2410C;
-    --kf-expense-bg: #FEF3EE;
-    --kf-refund: #2563EB;
-    --kf-refund-bg: #EFF6FF;
+    --kf-cobalt: #4778E5;
+    --kf-cobalt-hover: #3866D1;
+    --kf-coral: #E97962;
+    --kf-coral-hover: #D66852;
+    --kf-sage: #4C9B79;
+    --kf-sage-hover: #3E8667;
+    --kf-lavender: #8B79C6;
+    --kf-lavender-hover: #7A67B8;
+
+    /* ── Tinted Surface Design Tokens (6-12% opacity + tone border) ── */
+    --kf-tint-sage-bg: rgba(76, 155, 121, 0.10);
+    --kf-tint-sage-text: #28664D;
+    --kf-tint-sage-border: rgba(76, 155, 121, 0.22);
+
+    --kf-tint-coral-bg: rgba(233, 121, 98, 0.10);
+    --kf-tint-coral-text: #B03A24;
+    --kf-tint-coral-border: rgba(233, 121, 98, 0.22);
+
+    --kf-tint-cobalt-bg: rgba(71, 120, 229, 0.10);
+    --kf-tint-cobalt-text: #2953B2;
+    --kf-tint-cobalt-border: rgba(71, 120, 229, 0.22);
+
+    --kf-tint-amber-bg: rgba(217, 154, 55, 0.12);
+    --kf-tint-amber-text: #8C5C15;
+    --kf-tint-amber-border: rgba(217, 154, 55, 0.25);
+
+    --kf-tint-lavender-bg: rgba(139, 121, 198, 0.12);
+    --kf-tint-lavender-text: #5B4896;
+    --kf-tint-lavender-border: rgba(139, 121, 198, 0.25);
+
+    /* ── Financial Semantics Compatibility Mappings ── */
+    --kf-income: var(--kf-sage);
+    --kf-income-bg: var(--kf-tint-sage-bg);
+    --kf-expense: var(--kf-coral);
+    --kf-expense-bg: var(--kf-tint-coral-bg);
+    --kf-refund: var(--kf-amber);
+    --kf-refund-bg: var(--kf-tint-amber-bg);
 
     /* ── Typography Colors ── */
     --kf-text-main: #20251F;
@@ -122,6 +153,50 @@
 
 .kf-btn-secondary:hover {
   background-color: var(--kf-stone);
+}
+
+/* ── Tinted Surface Utility Classes ── */
+.kf-tint-sage {
+  background-color: var(--kf-tint-sage-bg);
+  color: var(--kf-tint-sage-text);
+  border: 1px solid var(--kf-tint-sage-border);
+}
+
+.kf-tint-coral {
+  background-color: var(--kf-tint-coral-bg);
+  color: var(--kf-tint-coral-text);
+  border: 1px solid var(--kf-tint-coral-border);
+}
+
+.kf-tint-cobalt {
+  background-color: var(--kf-tint-cobalt-bg);
+  color: var(--kf-tint-cobalt-text);
+  border: 1px solid var(--kf-tint-cobalt-border);
+}
+
+.kf-tint-amber {
+  background-color: var(--kf-tint-amber-bg);
+  color: var(--kf-tint-amber-text);
+  border: 1px solid var(--kf-tint-amber-border);
+}
+
+.kf-tint-lavender {
+  background-color: var(--kf-tint-lavender-bg);
+  color: var(--kf-tint-lavender-text);
+  border: 1px solid var(--kf-tint-lavender-border);
+}
+
+/* ── Interactive Category Squircles ── */
+.kf-squircle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s ease;
+}
+
+.kf-squircle:hover {
+  transform: translateY(-1px) scale(1.02);
 }
 
 /* ── Custom Scrollbar ── */

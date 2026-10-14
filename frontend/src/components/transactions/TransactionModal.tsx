@@ -10,41 +10,14 @@ import {
   Check,
   AlertCircle,
   AlertTriangle,
-  Folder,
-  Utensils,
-  Car,
-  Home,
-  Receipt,
-  ShoppingBag,
-  HeartPulse,
-  Gamepad2,
-  Tv,
-  Plane,
-  Sparkles,
-  GraduationCap,
+  ChevronDown,
 } from 'lucide-react';
 import { categoryService } from '../../services/categoryService';
 import { accountService } from '../../services/accountService';
 import { transferService } from '../../services/transferService';
 import { useCurrency } from '../../contexts/CurrencyContext';
+import { CategoryIcon, CategorySquircle } from '../../utils/categoryIcons';
 import type { Expense, ExpenseCreate, Category, Account, TransactionType } from '../../types';
-
-// Map icon strings to Lucide components
-const ICON_MAP: Record<string, React.ElementType> = {
-  Utensils,
-  Car,
-  Home,
-  House: Home,
-  Receipt,
-  ShoppingBag,
-  HeartPulse,
-  Gamepad2,
-  Tv,
-  Plane,
-  Sparkles,
-  GraduationCap,
-  Folder,
-};
 
 const transactionSchema = z.object({
   title: z.string(),
@@ -88,6 +61,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     title: string;
     categoryName: string;
     categoryIcon: string;
+    categoryColor?: string | null;
     type: TransactionType;
     date: string;
   } | null>(null);
@@ -178,17 +152,23 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   const handleTypeToggle = (type: TransactionType) => {
     setActiveType(type);
     setValue('transaction_type', type);
+    setValue('category_id', null);
     setCategoryError(null);
   };
 
   const handleAttemptClose = () => {
-    // If modal is in success view, close immediately
     if (modalView === 'success') {
       onClose();
       return;
     }
-    // If user has typed anything dirty, prompt confirmation
-    if (isDirty || (enteredAmount && Number(enteredAmount) > 0) || enteredTitle) {
+    // Prompt confirmation if user has entered an amount, description, or selected a category
+    const hasUnsavedChanges =
+      isDirty ||
+      Boolean(enteredAmount && Number(enteredAmount) > 0) ||
+      Boolean(enteredTitle && enteredTitle.trim()) ||
+      Boolean(selectedCategoryId);
+
+    if (hasUnsavedChanges) {
       setModalView('confirm_discard');
     } else {
       onClose();
@@ -230,11 +210,13 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           date: data.expense_date ? `${data.expense_date}T12:00:00` : undefined,
         });
 
+        // Show success ONLY after server confirmation
         setSavedSummary({
           amount: data.amount,
           title: data.title ? data.title.trim() : `Transfer to ${toAcc?.name || 'Account'}`,
           categoryName: `Transfer: ${fromAcc?.name} → ${toAcc?.name}`,
           categoryIcon: 'ArrowLeftRight',
+          categoryColor: '#4778E5',
           type: 'transfer',
           date: data.expense_date,
         });
@@ -255,11 +237,13 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           notes: data.notes || undefined,
         });
 
+        // Show success ONLY after server confirmation
         setSavedSummary({
           amount: data.amount,
           title: displayTitle,
           categoryName: cat ? cat.name : 'Uncategorized',
           categoryIcon: cat?.icon || 'Folder',
+          categoryColor: cat?.color,
           type: activeType,
           date: data.expense_date,
         });
@@ -269,6 +253,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     } catch (err: any) {
       const msg = err?.response?.data?.detail || err?.message || 'We could not reach the server.';
       setErrorMessage(typeof msg === 'string' ? msg : 'Network or server error.');
+      // View switches to error, but form values remain preserved in useForm
       setModalView('error');
     } finally {
       setIsSubmitting(false);
@@ -292,12 +277,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     setModalView('form');
   };
 
-  // Filter categories by active type
+  // Filter categories by active type (expense or income)
   const availableCategories = categories.filter((c) => c.category_type === activeType);
-
-  const CategoryIconComponent = selectedCategory
-    ? ICON_MAP[selectedCategory.icon] || Folder
-    : Folder;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -307,28 +288,28 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
         onClick={handleAttemptClose}
       />
 
-      {/* Modal Dialog (24px radius, calm ivory/stone palette) */}
-      <div className="relative w-full max-w-[480px] bg-white rounded-[24px] border border-[#DDD7CB] shadow-2xl overflow-hidden p-6 sm:p-7 z-10 transition-all">
-        {/* ── Close Button ── */}
+      {/* Modal Dialog: 24px radius, clean elevated surface */}
+      <div className="relative w-full max-w-[500px] bg-white rounded-[24px] border border-[var(--kf-stone,#DDD7CB)] shadow-2xl overflow-hidden p-6 sm:p-7 z-10 transition-all">
+        {/* Close Button */}
         <button
           onClick={handleAttemptClose}
-          className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center rounded-full text-[#6B7268] hover:text-[#20251F] hover:bg-[#F6F2E9] transition-colors"
-          aria-label="Close"
+          className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-full text-neutral-400 hover:text-neutral-800 hover:bg-stone-100 transition-colors cursor-pointer"
+          aria-label="Close dialog"
         >
           <X className="w-5 h-5" />
         </button>
 
-        {/* ════════════════ VIEW: SUCCESS STATE (State 5) ════════════════ */}
+        {/* ════════════════ VIEW: SUCCESS STATE ════════════════ */}
         {modalView === 'success' && savedSummary && (
-          <div className="text-center py-4 space-y-6">
-            <div className="w-16 h-16 mx-auto rounded-full bg-[#EAF4EE] flex items-center justify-center text-[#2E7D5B]">
+          <div className="text-center py-4 space-y-6 animate-in fade-in zoom-in-95 duration-150">
+            <div className="w-16 h-16 mx-auto rounded-full kf-tint-sage flex items-center justify-center text-[#28664D]">
               <Check className="w-8 h-8 stroke-[2.5]" />
             </div>
 
-            <div className="space-y-1.5">
-              <h2 className="text-2xl font-normal text-[#20251F]">Transaction added</h2>
-              <p className="text-base text-[#6B7268]">
-                <span className="font-medium text-[#20251F] kf-tnum">
+            <div className="space-y-1">
+              <h2 className="text-xl font-medium text-[var(--kf-ink,#20251F)]">Transaction recorded</h2>
+              <p className="text-sm text-neutral-600">
+                <span className="font-semibold text-neutral-900 kf-tnum">
                   {formatAmount(savedSummary.amount)}
                 </span>{' '}
                 {savedSummary.type === 'expense'
@@ -337,7 +318,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                   ? `earned from ${savedSummary.categoryName}`
                   : savedSummary.categoryName}
               </p>
-              <p className="text-xs text-[#8E948B] pt-0.5">
+              <p className="text-xs text-neutral-400 pt-0.5">
                 {new Date(savedSummary.date).toLocaleDateString('en-GB', {
                   day: 'numeric',
                   month: 'short',
@@ -346,34 +327,36 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               </p>
             </div>
 
-            {/* Transaction Card */}
-            <div className="bg-[#F6F2E9]/70 border border-[#DDD7CB] rounded-[18px] p-4 flex items-center gap-3.5 text-left">
-              <div className="w-10 h-10 rounded-xl bg-white border border-[#DDD7CB] flex items-center justify-center text-[#D99A37] shrink-0">
-                <CategoryIconComponent className="w-5 h-5" />
-              </div>
+            {/* Receipt Card */}
+            <div className="bg-[var(--kf-ivory,#F6F2E9)]/60 border border-[var(--kf-stone,#DDD7CB)] rounded-2xl p-4 flex items-center gap-3.5 text-left">
+              <CategorySquircle
+                iconName={savedSummary.categoryIcon}
+                color={savedSummary.categoryColor}
+                size="md"
+              />
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-[#20251F] truncate">
+                <p className="text-sm font-semibold text-neutral-900 truncate">
                   {savedSummary.title}
                 </p>
-                <p className="text-xs text-[#8E948B] truncate">
-                  {enteredTitle && enteredTitle.trim() ? savedSummary.categoryName : 'No description provided'}
+                <p className="text-xs text-neutral-500 truncate mt-0.5">
+                  {savedSummary.categoryName}
                 </p>
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="grid grid-cols-2 gap-3 pt-2">
+            {/* Actions */}
+            <div className="grid grid-cols-2 gap-3 pt-1">
               <button
                 type="button"
                 onClick={handleResetForAnother}
-                className="w-full py-3 px-4 rounded-[14px] bg-[#20251F] text-white hover:bg-[#313830] font-medium text-sm transition-colors"
+                className="w-full py-2.5 px-4 rounded-xl bg-[var(--kf-ink,#20251F)] text-white hover:opacity-90 font-medium text-xs transition-colors cursor-pointer"
               >
                 Add another
               </button>
               <button
                 type="button"
                 onClick={onClose}
-                className="w-full py-3 px-4 rounded-[14px] bg-[#F6F2E9] text-[#20251F] hover:bg-[#DDD7CB] font-medium text-sm transition-colors border border-[#DDD7CB]"
+                className="w-full py-2.5 px-4 rounded-xl bg-stone-100 text-neutral-800 hover:bg-stone-200 font-medium text-xs transition-colors border border-[var(--kf-stone,#DDD7CB)] cursor-pointer"
               >
                 Done
               </button>
@@ -381,42 +364,40 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           </div>
         )}
 
-        {/* ════════════════ VIEW: ERROR STATE (State 6) ════════════════ */}
+        {/* ════════════════ VIEW: ERROR STATE ════════════════ */}
         {modalView === 'error' && (
-          <div className="text-center py-4 space-y-6">
-            <div className="w-16 h-16 mx-auto rounded-full bg-[#FEF3EE] flex items-center justify-center text-[#C2410C]">
+          <div className="text-center py-4 space-y-6 animate-in fade-in zoom-in-95 duration-150">
+            <div className="w-16 h-16 mx-auto rounded-full kf-tint-coral flex items-center justify-center text-[#B03A24]">
               <AlertCircle className="w-8 h-8 stroke-[2]" />
             </div>
 
-            <div className="space-y-1.5">
-              <h2 className="text-2xl font-normal text-[#20251F]">Could not save transaction</h2>
-              <p className="text-sm text-[#6B7268] max-w-sm mx-auto">
-                Please try again. If the problem persists, check your connection and try later.
+            <div className="space-y-1">
+              <h2 className="text-xl font-medium text-[var(--kf-ink,#20251F)]">Could not record transaction</h2>
+              <p className="text-xs text-neutral-500 max-w-sm mx-auto">
+                Your entered data has been preserved. Please check the details and try again.
               </p>
             </div>
 
-            {/* Error Message Box */}
-            <div className="bg-[#FEF3EE]/80 border border-[#FDBA74] rounded-[18px] p-4 text-left flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-[#C2410C] shrink-0 mt-0.5" />
+            <div className="kf-tint-coral rounded-2xl p-3.5 text-left flex items-start gap-3 text-xs">
+              <AlertCircle className="w-4 h-4 text-[#B03A24] shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-[#C2410C]">Save error</p>
-                <p className="text-xs text-[#9A3412] mt-0.5">{errorMessage}</p>
+                <p className="font-semibold text-[#B03A24]">Server response:</p>
+                <p className="text-[11px] mt-0.5 leading-relaxed">{errorMessage}</p>
               </div>
             </div>
 
-            {/* Action Buttons: Preserves entered data */}
-            <div className="grid grid-cols-2 gap-3 pt-2">
+            <div className="grid grid-cols-2 gap-3 pt-1">
               <button
                 type="button"
                 onClick={() => setModalView('form')}
-                className="w-full py-3 px-4 rounded-[14px] bg-[#D99A37] text-white hover:bg-[#C5882B] font-medium text-sm transition-colors"
+                className="w-full py-2.5 px-4 rounded-xl bg-[var(--kf-amber,#D99A37)] text-white hover:bg-[var(--kf-amber-hover,#C5882B)] font-medium text-xs transition-colors cursor-pointer"
               >
-                Try again
+                Review and retry
               </button>
               <button
                 type="button"
                 onClick={onClose}
-                className="w-full py-3 px-4 rounded-[14px] bg-[#F6F2E9] text-[#20251F] hover:bg-[#DDD7CB] font-medium text-sm transition-colors border border-[#DDD7CB]"
+                className="w-full py-2.5 px-4 rounded-xl bg-stone-100 text-neutral-800 hover:bg-stone-200 font-medium text-xs transition-colors border border-[var(--kf-stone,#DDD7CB)] cursor-pointer"
               >
                 Cancel
               </button>
@@ -424,32 +405,32 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           </div>
         )}
 
-        {/* ════════════════ VIEW: CONFIRM DISCARD (State 7) ════════════════ */}
+        {/* ════════════════ VIEW: CONFIRM DISCARD ════════════════ */}
         {modalView === 'confirm_discard' && (
-          <div className="text-center py-4 space-y-6">
-            <div className="w-16 h-16 mx-auto rounded-full bg-[#FEF8ED] flex items-center justify-center text-[#D99A37]">
+          <div className="text-center py-4 space-y-6 animate-in fade-in zoom-in-95 duration-150">
+            <div className="w-16 h-16 mx-auto rounded-full kf-tint-amber flex items-center justify-center text-[#8C5C15]">
               <AlertTriangle className="w-8 h-8 stroke-[2]" />
             </div>
 
-            <div className="space-y-1.5">
-              <h2 className="text-2xl font-normal text-[#20251F]">Discard changes?</h2>
-              <p className="text-sm text-[#6B7268] max-w-sm mx-auto">
-                You have unsaved changes. If you close this window, your entered information will be lost.
+            <div className="space-y-1">
+              <h2 className="text-xl font-medium text-[var(--kf-ink,#20251F)]">Discard unsaved entry?</h2>
+              <p className="text-xs text-neutral-500 max-w-sm mx-auto">
+                You have started entering this transaction. If you close now, your inputs will be discarded.
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 pt-2">
+            <div className="grid grid-cols-2 gap-3 pt-1">
               <button
                 type="button"
                 onClick={onClose}
-                className="w-full py-3 px-4 rounded-[14px] bg-[#D99A37] text-white hover:bg-[#C5882B] font-medium text-sm transition-colors"
+                className="w-full py-2.5 px-4 rounded-xl bg-[var(--kf-coral,#E97962)] text-white hover:opacity-90 font-medium text-xs transition-colors cursor-pointer"
               >
-                Discard
+                Discard entry
               </button>
               <button
                 type="button"
                 onClick={() => setModalView('form')}
-                className="w-full py-3 px-4 rounded-[14px] bg-[#F6F2E9] text-[#20251F] hover:bg-[#DDD7CB] font-medium text-sm transition-colors border border-[#DDD7CB]"
+                className="w-full py-2.5 px-4 rounded-xl bg-stone-100 text-neutral-800 hover:bg-stone-200 font-medium text-xs transition-colors border border-[var(--kf-stone,#DDD7CB)] cursor-pointer"
               >
                 Keep editing
               </button>
@@ -457,24 +438,28 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           </div>
         )}
 
-        {/* ════════════════ VIEW: DEFAULT FORM (States 1, 2, 3, 4, 8) ════════════════ */}
+        {/* ════════════════ VIEW: FORM VIEW ════════════════ */}
         {modalView === 'form' && (
-          <div className="space-y-5">
-            {/* Header */}
+          <div className="space-y-5 animate-in fade-in duration-100">
+            {/* Modal Header */}
             <div>
-              <h2 className="text-xl font-medium text-[#20251F]">Add transaction</h2>
-              <p className="text-xs text-[#6B7268] mt-0.5">Record your money movement</p>
+              <span className="text-[10px] font-bold tracking-wider uppercase text-neutral-400">
+                Quick Add
+              </span>
+              <h2 className="text-lg font-bold tracking-tight text-[var(--kf-ink,#20251F)] mt-0.5">
+                Record Transaction
+              </h2>
             </div>
 
-            {/* 3-Segment Type Toggle (Expense | Income | Transfer) */}
-            <div className="grid grid-cols-3 gap-1 p-1 bg-[#F6F2E9] border border-[#DDD7CB] rounded-[16px]">
+            {/* Distinct 3-Segment Type Toggle (Coral for Expense, Sage for Income, Cobalt for Transfer) */}
+            <div className="grid grid-cols-3 gap-1.5 p-1 bg-stone-100/80 border border-[var(--kf-stone,#DDD7CB)] rounded-2xl">
               <button
                 type="button"
                 onClick={() => handleTypeToggle('expense')}
-                className={`py-2 px-3 text-xs font-medium rounded-[12px] flex items-center justify-center gap-1.5 transition-all ${
+                className={`py-2 px-3 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                   activeType === 'expense'
-                    ? 'bg-[#20251F] text-white shadow-xs'
-                    : 'text-[#6B7268] hover:text-[#20251F]'
+                    ? 'bg-white text-[#B03A24] border border-[#E97962]/40 shadow-xs'
+                    : 'text-neutral-500 hover:text-neutral-900 hover:bg-white/60'
                 }`}
               >
                 <ArrowDownRight className="w-3.5 h-3.5" />
@@ -484,10 +469,10 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               <button
                 type="button"
                 onClick={() => handleTypeToggle('income')}
-                className={`py-2 px-3 text-xs font-medium rounded-[12px] flex items-center justify-center gap-1.5 transition-all ${
+                className={`py-2 px-3 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                   activeType === 'income'
-                    ? 'bg-[#20251F] text-white shadow-xs'
-                    : 'text-[#6B7268] hover:text-[#20251F]'
+                    ? 'bg-white text-[#28664D] border border-[#4C9B79]/40 shadow-xs'
+                    : 'text-neutral-500 hover:text-neutral-900 hover:bg-white/60'
                 }`}
               >
                 <ArrowUpRight className="w-3.5 h-3.5" />
@@ -497,10 +482,10 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               <button
                 type="button"
                 onClick={() => handleTypeToggle('transfer')}
-                className={`py-2 px-3 text-xs font-medium rounded-[12px] flex items-center justify-center gap-1.5 transition-all ${
+                className={`py-2 px-3 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                   activeType === 'transfer'
-                    ? 'bg-[#20251F] text-white shadow-xs'
-                    : 'text-[#6B7268] hover:text-[#20251F]'
+                    ? 'bg-white text-[#2953B2] border border-[#4778E5]/40 shadow-xs'
+                    : 'text-neutral-500 hover:text-neutral-900 hover:bg-white/60'
                 }`}
               >
                 <ArrowLeftRight className="w-3.5 h-3.5" />
@@ -510,60 +495,82 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
             {/* Form */}
             <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
-              {/* Amount Field */}
+              {/* Prominent Amount Field */}
               <div className="space-y-1">
-                <label className="block text-xs font-medium text-[#20251F]">
-                  Amount <span className="text-[#C2410C]">*</span>
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-semibold text-neutral-700">
+                    Amount <span className="text-[var(--kf-coral,#E97962)]">*</span>
+                  </label>
+                  <span className="text-[10px] text-neutral-400">Required</span>
+                </div>
                 <div
-                  className={`relative flex items-center rounded-[14px] border transition-all ${
+                  className={`relative flex items-center rounded-2xl border transition-all ${
                     errors.amount
-                      ? 'border-[#C2410C] bg-[#FEF3EE]/40 ring-1 ring-[#C2410C]/30'
-                      : 'border-[#DDD7CB] bg-white hover:border-[#C4BEB1] focus-within:border-[#D99A37] focus-within:ring-2 focus-within:ring-[#D99A37]/20'
+                      ? 'border-[#E97962] bg-[#FEF3EE]/40 ring-2 ring-[#E97962]/20'
+                      : 'border-[var(--kf-stone,#DDD7CB)] bg-white hover:border-neutral-400 focus-within:border-[var(--kf-amber,#D99A37)] focus-within:ring-3 focus-within:ring-[#D99A37]/15'
                   }`}
                 >
-                  <span className="pl-3.5 pr-2 text-sm font-medium text-[#6B7268] select-none">
+                  <span className="pl-4 pr-1 text-xl font-bold text-neutral-400 select-none">
                     {symbol}
                   </span>
                   <input
                     type="number"
                     step="0.01"
                     placeholder="0.00"
+                    autoFocus
                     {...register('amount')}
-                    className="w-full py-2.5 pr-3.5 text-base font-normal text-[#20251F] bg-transparent outline-none kf-tnum"
+                    className="w-full py-3 pr-4 text-2xl font-bold text-[var(--kf-ink,#20251F)] bg-transparent outline-none kf-tnum"
                   />
                 </div>
                 {errors.amount && (
-                  <p className="flex items-center gap-1 text-xs text-[#C2410C] pt-0.5">
+                  <p className="flex items-center gap-1 text-xs text-[#B03A24] pt-0.5">
                     <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                     <span>{errors.amount.message}</span>
                   </p>
                 )}
               </div>
 
-              {/* ── EXPENSE & INCOME MODE: Category selection ── */}
+              {/* ── EXPENSE & INCOME MODE: Category Selection with Expressive Squircles ── */}
               {activeType !== 'transfer' && (
-                <div className="space-y-1">
-                  <label className="block text-xs font-medium text-[#20251F]">
-                    Category <span className="text-[#C2410C]">*</span>
-                  </label>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-semibold text-neutral-700">
+                      Category <span className="text-[var(--kf-coral,#E97962)]">*</span>
+                    </label>
+                    <span className="text-[10px] text-neutral-400">
+                      {selectedCategory ? selectedCategory.name : 'Choose one'}
+                    </span>
+                  </div>
+
+                  {/* Primary Category Selector with Squircle Preview */}
                   <div
-                    className={`relative rounded-[14px] border transition-all ${
+                    className={`relative flex items-center rounded-xl border bg-white transition-all ${
                       categoryError
-                        ? 'border-[#C2410C] bg-[#FEF3EE]/40 ring-1 ring-[#C2410C]/30'
-                        : 'border-[#DDD7CB] bg-white hover:border-[#C4BEB1] focus-within:border-[#D99A37]'
+                        ? 'border-[#E97962] bg-[#FEF3EE]/40 ring-2 ring-[#E97962]/20'
+                        : 'border-[var(--kf-stone,#DDD7CB)] hover:border-neutral-400 focus-within:border-[var(--kf-amber,#D99A37)]'
                     }`}
                   >
-                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#D99A37] pointer-events-none">
-                      <CategoryIconComponent className="w-4 h-4" />
+                    <div className="pl-3 py-2 shrink-0">
+                      <CategoryIcon
+                        iconName={selectedCategory?.icon}
+                        color={selectedCategory?.color}
+                        variant="tinted"
+                        size="sm"
+                      />
                     </div>
+
                     <select
                       {...register('category_id')}
-                      className="w-full py-2.5 pl-10 pr-8 text-sm text-[#20251F] bg-transparent rounded-[14px] outline-none appearance-none cursor-pointer"
-                      defaultValue=""
+                      value={selectedCategoryId ? String(selectedCategoryId) : ''}
+                      onChange={(e) => {
+                        const val = e.target.value ? Number(e.target.value) : null;
+                        setValue('category_id', val, { shouldDirty: true, shouldValidate: true });
+                        if (val) setCategoryError(null);
+                      }}
+                      className="w-full py-2.5 pl-2.5 pr-8 text-xs font-medium text-neutral-900 bg-transparent rounded-xl outline-none appearance-none cursor-pointer"
                     >
                       <option value="" disabled>
-                        Select a category
+                        Select a category...
                       </option>
                       {availableCategories.map((cat) => (
                         <option key={cat.id} value={cat.id}>
@@ -571,9 +578,43 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                         </option>
                       ))}
                     </select>
+
+                    <ChevronDown className="w-4 h-4 text-neutral-400 absolute right-3 pointer-events-none" />
                   </div>
+
+                  {/* Quick Select Category Chips (Most common 5 categories for quick access) */}
+                  {availableCategories.length > 0 && (
+                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-0.5 scrollbar-none">
+                      {availableCategories.slice(0, 5).map((cat) => {
+                        const isSelected = Number(selectedCategoryId) === cat.id;
+                        return (
+                          <button
+                            key={cat.id}
+                            type="button"
+                            onClick={() => {
+                              setValue('category_id', cat.id, { shouldDirty: true, shouldValidate: true });
+                              setCategoryError(null);
+                            }}
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition cursor-pointer shrink-0 ${
+                              isSelected
+                                ? 'bg-[var(--kf-ink,#20251F)] text-white shadow-2xs font-semibold'
+                                : 'bg-stone-100 text-neutral-700 hover:bg-stone-200/80 border border-transparent'
+                            }`}
+                          >
+                            <CategoryIcon
+                              iconName={cat.icon}
+                              className="w-3 h-3"
+                              variant="raw"
+                            />
+                            <span>{cat.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
                   {categoryError && (
-                    <p className="flex items-center gap-1 text-xs text-[#C2410C] pt-0.5">
+                    <p className="flex items-center gap-1 text-xs text-[#B03A24] pt-0.5">
                       <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                       <span>{categoryError}</span>
                     </p>
@@ -581,16 +622,16 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 </div>
               )}
 
-              {/* ── TRANSFER MODE: Source & Destination Accounts (State 8) ── */}
+              {/* ── TRANSFER MODE: Source & Destination Accounts ── */}
               {activeType === 'transfer' && (
-                <div className="space-y-3">
+                <div className="space-y-3 bg-stone-50/70 border border-[var(--kf-stone,#DDD7CB)] rounded-2xl p-3.5">
                   <div className="space-y-1">
-                    <label className="block text-xs font-medium text-[#20251F]">
-                      From account <span className="text-[#C2410C]">*</span>
+                    <label className="block text-xs font-semibold text-neutral-700">
+                      From Account <span className="text-[var(--kf-coral,#E97962)]">*</span>
                     </label>
                     <select
                       {...register('account_id')}
-                      className="w-full py-2.5 px-3.5 text-sm text-[#20251F] bg-white border border-[#DDD7CB] rounded-[14px] outline-none cursor-pointer hover:border-[#C4BEB1] focus:border-[#D99A37]"
+                      className="w-full py-2 px-3 text-xs font-medium text-neutral-900 bg-white border border-[var(--kf-stone,#DDD7CB)] rounded-xl outline-none cursor-pointer focus:border-[var(--kf-amber,#D99A37)]"
                     >
                       {accounts.map((acc) => (
                         <option key={acc.id} value={acc.id}>
@@ -601,12 +642,12 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                   </div>
 
                   <div className="space-y-1">
-                    <label className="block text-xs font-medium text-[#20251F]">
-                      To account <span className="text-[#C2410C]">*</span>
+                    <label className="block text-xs font-semibold text-neutral-700">
+                      To Destination Account <span className="text-[var(--kf-coral,#E97962)]">*</span>
                     </label>
                     <select
                       {...register('to_account_id')}
-                      className="w-full py-2.5 px-3.5 text-sm text-[#20251F] bg-white border border-[#DDD7CB] rounded-[14px] outline-none cursor-pointer hover:border-[#C4BEB1] focus:border-[#D99A37]"
+                      className="w-full py-2 px-3 text-xs font-medium text-neutral-900 bg-white border border-[var(--kf-stone,#DDD7CB)] rounded-xl outline-none cursor-pointer focus:border-[var(--kf-amber,#D99A37)]"
                     >
                       {accounts
                         .filter((a) => a.id !== Number(selectedFromAccountId))
@@ -620,29 +661,55 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 </div>
               )}
 
-              {/* Description (Optional) */}
+              {/* Optional Description (Falls back to category name if left blank) */}
               <div className="space-y-1">
-                <label className="block text-xs font-medium text-[#20251F]">
-                  Description (optional)
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-semibold text-neutral-700">
+                    Description
+                  </label>
+                  <span className="text-[10px] text-neutral-400">
+                    Optional (defaults to category)
+                  </span>
+                </div>
                 <input
                   type="text"
-                  placeholder="What was this for?"
+                  placeholder="e.g. Lunch with team, monthly train pass"
                   {...register('title')}
-                  className="w-full py-2.5 px-3.5 text-sm text-[#20251F] bg-white border border-[#DDD7CB] rounded-[14px] outline-none hover:border-[#C4BEB1] focus:border-[#D99A37]"
+                  className="w-full py-2 px-3.5 text-xs text-neutral-900 bg-white border border-[var(--kf-stone,#DDD7CB)] rounded-xl outline-none hover:border-neutral-400 focus:border-[var(--kf-amber,#D99A37)] transition"
                 />
               </div>
 
-              {/* Date Field */}
-              <div className="space-y-1">
-                <label className="block text-xs font-medium text-[#20251F]">
-                  Date
-                </label>
-                <input
-                  type="date"
-                  {...register('expense_date')}
-                  className="w-full py-2.5 px-3.5 text-sm text-[#20251F] bg-white border border-[#DDD7CB] rounded-[14px] outline-none hover:border-[#C4BEB1] focus:border-[#D99A37] cursor-pointer"
-                />
+              {/* Date & Account (For Expense/Income) */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-neutral-700">
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    {...register('expense_date')}
+                    className="w-full py-2 px-3 text-xs text-neutral-900 bg-white border border-[var(--kf-stone,#DDD7CB)] rounded-xl outline-none hover:border-neutral-400 focus:border-[var(--kf-amber,#D99A37)] cursor-pointer transition"
+                  />
+                </div>
+
+                {activeType !== 'transfer' && (
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-neutral-700">
+                      Paid from Account
+                    </label>
+                    <select
+                      {...register('account_id')}
+                      className="w-full py-2 px-3 text-xs font-medium text-neutral-900 bg-white border border-[var(--kf-stone,#DDD7CB)] rounded-xl outline-none hover:border-neutral-400 focus:border-[var(--kf-amber,#D99A37)] cursor-pointer transition"
+                    >
+                      <option value="">No account (Cash flow)</option>
+                      {accounts.map((acc) => (
+                        <option key={acc.id} value={acc.id}>
+                          {acc.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               {/* Action Buttons */}
@@ -650,20 +717,20 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 <button
                   type="button"
                   onClick={handleAttemptClose}
-                  className="w-full py-3 px-4 rounded-[14px] bg-[#F6F2E9] text-[#20251F] hover:bg-[#DDD7CB] font-medium text-sm transition-colors border border-[#DDD7CB]"
+                  className="w-full py-2.5 px-4 rounded-xl bg-stone-100 text-neutral-800 hover:bg-stone-200 font-medium text-xs transition-colors border border-[var(--kf-stone,#DDD7CB)] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full py-3 px-4 rounded-[14px] bg-[#D99A37] text-white hover:bg-[#C5882B] disabled:opacity-50 font-medium text-sm transition-colors shadow-xs"
+                  className="w-full py-2.5 px-4 rounded-xl bg-[var(--kf-amber,#D99A37)] text-white hover:bg-[var(--kf-amber-hover,#C5882B)] disabled:opacity-50 font-semibold text-xs transition-colors shadow-xs cursor-pointer active:scale-[0.98]"
                 >
                   {isSubmitting
                     ? 'Saving...'
                     : activeType === 'transfer'
-                    ? 'Save transfer'
-                    : 'Save transaction'}
+                    ? 'Record Transfer'
+                    : 'Record Transaction'}
                 </button>
               </div>
             </form>

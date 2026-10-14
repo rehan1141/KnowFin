@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   DollarSign,
   Wallet,
@@ -12,7 +13,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { accountService } from '../services/accountService';
 import type { Account, Currency } from '../types';
-import { Link } from 'react-router-dom';
 
 export const SettingsPage: React.FC = () => {
   const { user, updateUser } = useAuth();
@@ -95,29 +95,28 @@ export const SettingsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-200 max-w-4xl mx-auto">
-      {/* Page Header */}
-      <div className="pb-3 border-b border-[var(--kf-stone-soft,#DDD7CB)]">
-        <span className="text-xs font-semibold tracking-wider uppercase text-neutral-500">
-          Preferences & Configuration
-        </span>
-        <h1 className="text-2xl font-bold tracking-tight text-[var(--kf-ink-deep,#20251F)] mt-0.5">
+    <div className="space-y-6 animate-in fade-in duration-200 max-w-4xl mx-auto pb-12">
+      {/* ── Page Header ── */}
+      <div className="pb-3 border-b border-[#DDD7CB]/70">
+        <h1 className="text-2xl sm:text-3xl font-normal text-[#20251F] tracking-tight">
           Settings
         </h1>
-        <p className="text-xs text-neutral-500 mt-1">
+        <p className="text-xs sm:text-sm text-[#6B7268] mt-0.5">
           Configure your reporting currency, starting balances, and account profile.
         </p>
       </div>
 
       <div className="space-y-5">
-        {/* Section 1: Reporting Currency */}
-        <div className="bg-white border border-[var(--kf-stone-soft,#DDD7CB)] rounded-2xl p-6 shadow-2xs space-y-4">
-          <div className="flex items-center gap-2.5 pb-3 border-b border-[var(--kf-stone-soft,#DDD7CB)]">
-            <DollarSign className="w-4 h-4 text-[var(--kf-ink-deep,#20251F)]" />
-            <h2 className="text-sm font-bold text-neutral-900">Reporting Currency</h2>
+        {/* ── Section 1: Reporting Currency ── */}
+        <div className="bg-white border border-[#DDD7CB] rounded-[18px] p-6 shadow-2xs space-y-4">
+          <div className="flex items-center gap-2.5 pb-3 border-b border-[#DDD7CB]/60">
+            <div className="w-7 h-7 rounded-[9px] bg-[#FAF8F3] border border-[#DDD7CB] flex items-center justify-center text-[#20251F]">
+              <DollarSign className="w-4 h-4 stroke-[2]" aria-hidden="true" />
+            </div>
+            <h2 className="text-sm font-medium text-[#20251F]">Reporting Currency</h2>
           </div>
 
-          <p className="text-xs text-neutral-600 leading-relaxed">
+          <p className="text-xs text-[#6B7268] leading-relaxed">
             Select your primary currency symbol for display across your dashboard, transactions, and reports.
           </p>
 
@@ -127,99 +126,104 @@ export const SettingsPage: React.FC = () => {
                 key={c}
                 type="button"
                 onClick={() => handleCurrencyChange(c)}
-                className={`py-3 px-4 rounded-xl border text-center transition flex flex-col items-center justify-center gap-1 ${
+                className={`py-3 px-4 rounded-[14px] border text-center transition-all flex flex-col items-center justify-center gap-1 active:scale-[0.98] cursor-pointer ${
                   currency === c
-                    ? 'border-[var(--kf-ink-deep,#20251F)] bg-stone-100 text-[var(--kf-ink-deep,#20251F)] font-bold shadow-2xs'
-                    : 'border-[var(--kf-stone-soft,#DDD7CB)] text-neutral-600 hover:border-neutral-400'
+                    ? 'border-[#D99A37] bg-[#FBF4E8] text-[#20251F] shadow-2xs'
+                    : 'border-[#DDD7CB] text-[#6B7268] bg-white hover:border-[#C4BEB1] hover:text-[#20251F]'
                 }`}
               >
-                <span className="text-base font-extrabold">
+                <span className="text-lg font-normal text-[#20251F]">
                   {c === 'EUR' ? '€' : c === 'USD' ? '$' : '₹'}
                 </span>
-                <span className="text-xs font-semibold">{c}</span>
+                <span className="text-xs font-medium">{c}</span>
               </button>
             ))}
           </div>
 
-          <div className="flex items-start gap-2 p-3 bg-amber-50/70 border border-amber-200/60 rounded-xl text-amber-900 text-xs">
-            <HelpCircle className="w-4 h-4 text-[var(--kf-amber-warm,#D99A37)] shrink-0 mt-0.5" />
-            <div className="text-[11px] leading-relaxed">
-              <span className="font-semibold">Display-Only Formatting:</span> KnowFin preserves the raw numerical values of all recorded transactions. Changing your currency preference updates the formatting prefix across your views; it does not perform automated exchange rate conversions.
+          <div className="flex items-start gap-2.5 p-3.5 bg-[#FAF8F3] border border-[#DDD7CB]/70 rounded-[14px] text-[#20251F] text-xs">
+            <HelpCircle className="w-4 h-4 text-[#D99A37] shrink-0 mt-0.5" aria-hidden="true" />
+            <div className="text-[11px] text-[#6B7268] leading-relaxed">
+              <span className="font-medium text-[#20251F]">Display-only formatting:</span> KnowFin preserves the raw numerical values of all recorded transactions. Changing your currency preference updates the formatting symbol across your views; it does not perform automated exchange rate conversions.
             </div>
           </div>
         </div>
 
-        {/* Section 2: Account Opening Balances */}
-        <div className="bg-white border border-[var(--kf-stone-soft,#DDD7CB)] rounded-2xl p-6 shadow-2xs space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-[var(--kf-stone-soft,#DDD7CB)]">
+        {/* ── Section 2: Account Opening Balances ── */}
+        <div className="bg-white border border-[#DDD7CB] rounded-[18px] p-6 shadow-2xs space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-[#DDD7CB]/60">
             <div className="flex items-center gap-2.5">
-              <Wallet className="w-4 h-4 text-[var(--kf-ink-deep,#20251F)]" />
-              <h2 className="text-sm font-bold text-neutral-900">Starting Account Balances</h2>
+              <div className="w-7 h-7 rounded-[9px] bg-[#FAF8F3] border border-[#DDD7CB] flex items-center justify-center text-[#20251F]">
+                <Wallet className="w-4 h-4 stroke-[2]" aria-hidden="true" />
+              </div>
+              <h2 className="text-sm font-medium text-[#20251F]">Starting Account Balances</h2>
             </div>
             <Link
               to="/accounts"
-              className="text-xs font-semibold text-neutral-700 hover:text-neutral-950 inline-flex items-center gap-1"
+              className="text-xs font-medium text-[#4778E5] hover:underline inline-flex items-center gap-0.5"
             >
               <span>Manage accounts</span>
-              <ChevronRight className="w-3.5 h-3.5" />
+              <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
             </Link>
           </div>
 
-          <p className="text-xs text-neutral-600 leading-relaxed">
+          <p className="text-xs text-[#6B7268] leading-relaxed">
             Unset opening balance allows you to track cash flow without assuming initial funds. Setting an opening balance anchors your net worth to your real-world bank statements.
           </p>
 
           {isLoadingAccounts ? (
-            <div className="py-6 text-center text-xs text-neutral-400">Loading accounts...</div>
+            <div className="py-6 text-center text-xs text-[#8E948B]">Loading accounts...</div>
           ) : accounts.length === 0 ? (
-            <div className="text-center py-6 text-xs text-neutral-500">
+            <div className="text-center py-6 text-xs text-[#8E948B]">
               No accounts registered yet.
             </div>
           ) : (
-            <div className="divide-y divide-[var(--kf-stone-soft,#DDD7CB)] border border-[var(--kf-stone-soft,#DDD7CB)] rounded-xl overflow-hidden">
+            <div className="divide-y divide-[#DDD7CB]/60 border border-[#DDD7CB] rounded-[14px] overflow-hidden">
               {accounts.map((acc) => {
                 const isEditing = editingAccountId === acc.id;
                 const isSet = acc.is_balance_set !== false && acc.initial_balance !== null && acc.initial_balance !== undefined;
 
                 return (
-                  <div key={acc.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
+                  <div key={acc.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white hover:bg-[#FAF8F3]/50 transition-colors">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-neutral-900">{acc.name}</span>
-                        <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-stone-100 text-stone-600 border border-stone-200">
+                        <span className="text-sm font-medium text-[#20251F]">{acc.name}</span>
+                        <span className="text-[10px] uppercase font-medium tracking-wider px-2 py-0.5 rounded-[6px] bg-[#F6F2E9] text-[#6B7268] border border-[#DDD7CB]">
                           {acc.account_type}
                         </span>
                       </div>
-                      <div className="text-xs text-neutral-500 mt-1 flex items-center gap-2">
-                        <span>Current Balance:</span>
-                        <span className="font-bold text-neutral-900 kf-tnum">
+                      <div className="text-xs text-[#6B7268] mt-1 flex items-center gap-1.5">
+                        <span>Current balance:</span>
+                        <span className="font-medium text-[#20251F] kf-tnum">
                           {isSet ? formatAmount(acc.current_balance ?? 0) : 'Calculated Net Cash Flow'}
                         </span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 shrink-0">
                       {isEditing ? (
                         <div className="flex items-center gap-2">
                           <input
                             type="number"
                             step="0.01"
-                            placeholder="Leave blank for unset"
+                            placeholder="Blank for unset"
                             value={openingBalanceInput}
                             onChange={(e) => setOpeningBalanceInput(e.target.value)}
-                            className="px-2.5 py-1.5 border border-[var(--kf-stone-soft,#DDD7CB)] rounded-lg text-xs w-36 outline-none focus:border-[var(--kf-ink-deep,#20251F)] kf-tnum"
+                            aria-label="Opening balance input"
+                            className="px-3 py-1.5 border border-[#DDD7CB] rounded-[10px] text-xs w-36 outline-none focus:border-[#D99A37] kf-tnum bg-white"
                             autoFocus
                           />
                           <button
+                            type="button"
                             disabled={isSavingBalance}
                             onClick={() => handleSaveOpeningBalance(acc.id)}
-                            className="px-3 py-1.5 bg-[var(--kf-ink-deep,#20251F)] text-white text-xs font-bold rounded-lg hover:opacity-90 disabled:opacity-50"
+                            className="px-3 py-1.5 bg-[#D99A37] hover:bg-[#C5882B] text-white text-xs font-medium rounded-[10px] disabled:opacity-50 transition-colors shadow-xs active:scale-[0.98]"
                           >
                             Save
                           </button>
                           <button
+                            type="button"
                             onClick={() => setEditingAccountId(null)}
-                            className="px-2.5 py-1.5 text-xs text-neutral-500 hover:text-neutral-800"
+                            className="px-2.5 py-1.5 text-xs text-[#6B7268] hover:text-[#20251F] transition-colors"
                           >
                             Cancel
                           </button>
@@ -227,16 +231,17 @@ export const SettingsPage: React.FC = () => {
                       ) : (
                         <div className="flex items-center gap-3">
                           <div className="text-right">
-                            <span className="text-[11px] text-neutral-400 block">Opening Balance</span>
-                            <span className="text-xs font-bold text-neutral-800 kf-tnum">
+                            <span className="text-[11px] text-[#8E948B] block">Opening Balance</span>
+                            <span className={`text-xs font-medium kf-tnum ${isSet ? 'text-[#20251F]' : 'text-[#8E948B]'}`}>
                               {isSet ? formatAmount(acc.initial_balance ?? 0) : 'Not Set (Cash Flow Mode)'}
                             </span>
                           </div>
                           <button
+                            type="button"
                             onClick={() => handleStartEditBalance(acc)}
-                            className="px-3 py-1.5 border border-[var(--kf-stone-soft,#DDD7CB)] rounded-lg text-xs font-semibold text-neutral-700 hover:bg-stone-50 transition"
+                            className="px-3.5 py-1.5 border border-[#DDD7CB] rounded-[10px] text-xs font-medium text-[#20251F] hover:bg-[#FAF8F3] hover:border-[#C4BEB1] transition-colors shadow-2xs active:scale-[0.98]"
                           >
-                            {isSet ? 'Edit' : 'Set Balance'}
+                            {isSet ? 'Edit' : 'Set balance'}
                           </button>
                         </div>
                       )}
@@ -248,41 +253,45 @@ export const SettingsPage: React.FC = () => {
           )}
         </div>
 
-        {/* Section 3: User Profile */}
-        <div className="bg-white border border-[var(--kf-stone-soft,#DDD7CB)] rounded-2xl p-6 shadow-2xs space-y-4">
-          <div className="flex items-center gap-2.5 pb-3 border-b border-[var(--kf-stone-soft,#DDD7CB)]">
-            <UserIcon className="w-4 h-4 text-[var(--kf-ink-deep,#20251F)]" />
-            <h2 className="text-sm font-bold text-neutral-900">User Profile</h2>
+        {/* ── Section 3: User Profile ── */}
+        <div className="bg-white border border-[#DDD7CB] rounded-[18px] p-6 shadow-2xs space-y-4">
+          <div className="flex items-center gap-2.5 pb-3 border-b border-[#DDD7CB]/60">
+            <div className="w-7 h-7 rounded-[9px] bg-[#FAF8F3] border border-[#DDD7CB] flex items-center justify-center text-[#20251F]">
+              <UserIcon className="w-4 h-4 stroke-[2]" aria-hidden="true" />
+            </div>
+            <h2 className="text-sm font-medium text-[#20251F]">User Profile</h2>
           </div>
 
           <form onSubmit={handleSaveProfile} className="space-y-4 max-w-md">
             <div>
-              <label className="block text-xs font-semibold text-neutral-700 mb-1">
+              <label htmlFor="settings-fullname" className="block text-xs font-medium text-[#20251F] mb-1.5">
                 Full Name
               </label>
               <input
+                id="settings-fullname"
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="w-full px-3 py-2 border border-[var(--kf-stone-soft,#DDD7CB)] rounded-lg text-xs text-neutral-900 outline-none focus:border-[var(--kf-ink-deep,#20251F)] transition"
+                className="w-full px-3.5 py-2 border border-[#DDD7CB] rounded-[12px] text-xs text-[#20251F] outline-none focus:border-[#D99A37] transition-colors bg-white placeholder:text-[#8E948B]"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-neutral-700 mb-1">
+              <label htmlFor="settings-email" className="block text-xs font-medium text-[#20251F] mb-1.5">
                 Email Address
               </label>
               <input
+                id="settings-email"
                 type="text"
                 disabled
                 value={user?.email || ''}
-                className="w-full px-3 py-2 border border-[var(--kf-stone-soft,#DDD7CB)] bg-stone-50 rounded-lg text-xs text-neutral-500 cursor-not-allowed"
+                className="w-full px-3.5 py-2 border border-[#DDD7CB] bg-[#FAF8F3] rounded-[12px] text-xs text-[#8E948B] cursor-not-allowed"
               />
             </div>
 
             {profileSuccessMessage && (
-              <div className="flex items-center gap-1.5 text-xs text-emerald-700 font-semibold">
-                <Check className="w-3.5 h-3.5" />
+              <div className="flex items-center gap-1.5 text-xs text-[#4C9B79] font-medium">
+                <Check className="w-3.5 h-3.5" aria-hidden="true" />
                 <span>{profileSuccessMessage}</span>
               </div>
             )}
@@ -290,48 +299,48 @@ export const SettingsPage: React.FC = () => {
             <button
               type="submit"
               disabled={isSavingProfile}
-              className="px-4 py-2 bg-[var(--kf-ink-deep,#20251F)] text-white text-xs font-bold rounded-lg hover:opacity-90 disabled:opacity-50 transition"
+              className="px-4 py-2.5 bg-[#D99A37] hover:bg-[#C5882B] text-white text-xs font-medium rounded-[12px] disabled:opacity-50 transition-colors shadow-xs active:scale-[0.98]"
             >
-              {isSavingProfile ? 'Saving...' : 'Update Profile'}
+              {isSavingProfile ? 'Saving...' : 'Update profile'}
             </button>
           </form>
         </div>
 
-        {/* Section 4: Quick Navigation to Other Tools */}
-        <div className="bg-white border border-[var(--kf-stone-soft,#DDD7CB)] rounded-2xl p-6 shadow-2xs space-y-3">
-          <h2 className="text-sm font-bold text-neutral-900">Additional Management Tools</h2>
+        {/* ── Section 4: Quick Navigation to Other Tools ── */}
+        <div className="bg-white border border-[#DDD7CB] rounded-[18px] p-6 shadow-2xs space-y-3">
+          <h2 className="text-sm font-medium text-[#20251F]">Additional Management Tools</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
             <Link
               to="/accounts"
-              className="p-3 border border-[var(--kf-stone-soft,#DDD7CB)] rounded-xl hover:bg-stone-50 transition flex items-center justify-between"
+              className="p-3.5 border border-[#DDD7CB] rounded-[14px] bg-white hover:bg-[#FAF8F3] hover:border-[#C4BEB1] transition-all flex items-center justify-between group shadow-2xs"
             >
               <div>
-                <span className="text-xs font-bold text-neutral-900 block">Accounts</span>
-                <span className="text-[11px] text-neutral-400">Add or manage bank accounts</span>
+                <span className="text-xs font-medium text-[#20251F] block">Accounts</span>
+                <span className="text-[11px] text-[#6B7268]">Add or manage bank accounts</span>
               </div>
-              <ExternalLink className="w-3.5 h-3.5 text-neutral-400" />
+              <ExternalLink className="w-3.5 h-3.5 text-[#8E948B] group-hover:text-[#20251F] transition-colors" aria-hidden="true" />
             </Link>
 
             <Link
               to="/budgets"
-              className="p-3 border border-[var(--kf-stone-soft,#DDD7CB)] rounded-xl hover:bg-stone-50 transition flex items-center justify-between"
+              className="p-3.5 border border-[#DDD7CB] rounded-[14px] bg-white hover:bg-[#FAF8F3] hover:border-[#C4BEB1] transition-all flex items-center justify-between group shadow-2xs"
             >
               <div>
-                <span className="text-xs font-bold text-neutral-900 block">Budgets</span>
-                <span className="text-[11px] text-neutral-400">Monthly category spending targets</span>
+                <span className="text-xs font-medium text-[#20251F] block">Budgets</span>
+                <span className="text-[11px] text-[#6B7268]">Monthly category targets</span>
               </div>
-              <ExternalLink className="w-3.5 h-3.5 text-neutral-400" />
+              <ExternalLink className="w-3.5 h-3.5 text-[#8E948B] group-hover:text-[#20251F] transition-colors" aria-hidden="true" />
             </Link>
 
             <Link
               to="/recurring"
-              className="p-3 border border-[var(--kf-stone-soft,#DDD7CB)] rounded-xl hover:bg-stone-50 transition flex items-center justify-between"
+              className="p-3.5 border border-[#DDD7CB] rounded-[14px] bg-white hover:bg-[#FAF8F3] hover:border-[#C4BEB1] transition-all flex items-center justify-between group shadow-2xs"
             >
               <div>
-                <span className="text-xs font-bold text-neutral-900 block">Recurring Plans</span>
-                <span className="text-[11px] text-neutral-400">Scheduled expense templates</span>
+                <span className="text-xs font-medium text-[#20251F] block">Recurring Plans</span>
+                <span className="text-[11px] text-[#6B7268]">Scheduled expense templates</span>
               </div>
-              <ExternalLink className="w-3.5 h-3.5 text-neutral-400" />
+              <ExternalLink className="w-3.5 h-3.5 text-[#8E948B] group-hover:text-[#20251F] transition-colors" aria-hidden="true" />
             </Link>
           </div>
         </div>

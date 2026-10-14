@@ -2,13 +2,14 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {
   BarChart3,
   Plus,
-  ArrowDownLeft,
+  ArrowDownRight,
   ArrowUpRight,
   RotateCcw,
   PiggyBank,
   Percent,
   Calendar,
   Layers,
+  AlertCircle,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -22,7 +23,7 @@ import {
 import { analyticsService } from '../services/analyticsService';
 import { expenseService } from '../services/expenseService';
 import { useCurrency } from '../contexts/CurrencyContext';
-import { CategoryIcon } from '../utils/categoryIcons';
+import { CategorySquircle } from '../utils/categoryIcons';
 import { TransactionModal } from '../components/transactions/TransactionModal';
 import type {
   MonthlySummary,
@@ -41,10 +42,12 @@ export const AnalyticsPage: React.FC = () => {
   const [categoryData, setCategoryData] = useState<CategorySpendingResponse | null>(null);
   const [cashFlowData, setCashFlowData] = useState<CashFlowResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
 
   const loadAnalytics = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const [sumRes, catRes, flowRes] = await Promise.all([
         analyticsService.getMonthlySummary(selectedMonth, selectedYear),
@@ -54,8 +57,8 @@ export const AnalyticsPage: React.FC = () => {
       setSummary(sumRes);
       setCategoryData(catRes);
       setCashFlowData(flowRes);
-    } catch {
-      // Handled silently
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || 'Could not load your financial insights.');
     } finally {
       setIsLoading(false);
     }
@@ -70,11 +73,33 @@ export const AnalyticsPage: React.FC = () => {
     await loadAnalytics();
   };
 
+  // ════════════════════ STATE 1: LOADING STATE ════════════════════
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-28 text-neutral-400 text-xs">
-        <div className="w-6 h-6 rounded-full border-2 border-neutral-300 border-t-[var(--kf-ink-deep,#20251F)] animate-spin mb-2" />
-        <span>Computing financial insights...</span>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+        <div className="w-10 h-10 rounded-full border-3 border-[#DDD7CB] border-t-[#D99A37] animate-spin mb-4" />
+        <h2 className="text-base font-normal text-[#20251F]">Computing financial insights...</h2>
+        <p className="text-xs text-[#6B7268] mt-1">Analyzing your cash flow and spending distribution.</p>
+      </div>
+    );
+  }
+
+  // ════════════════════ STATE 2: ERROR STATE ════════════════════
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6 max-w-md mx-auto">
+        <div className="w-14 h-14 rounded-[16px] bg-[#FDF1EE] border border-[#E97962]/20 flex items-center justify-center text-[#E97962] mb-4">
+          <AlertCircle className="w-7 h-7 stroke-[1.75]" />
+        </div>
+        <h2 className="text-lg font-normal text-[#20251F]">Could not load insights</h2>
+        <p className="text-xs text-[#6B7268] mt-1.5 mb-5 leading-relaxed">{error}</p>
+        <button
+          type="button"
+          onClick={loadAnalytics}
+          className="py-2.5 px-5 rounded-[12px] bg-[#D99A37] text-white hover:bg-[#C5882B] text-xs font-medium transition-colors shadow-xs active:scale-[0.98]"
+        >
+          Try again
+        </button>
       </div>
     );
   }
@@ -110,27 +135,25 @@ export const AnalyticsPage: React.FC = () => {
   const hasActivity = totalTransactions > 0 || totalIncome > 0 || grossSpending > 0;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-200 max-w-5xl mx-auto">
-      {/* Header and Period Selector */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2 border-b border-[var(--kf-stone-soft,#DDD7CB)]">
+    <div className="space-y-6 animate-in fade-in duration-200 max-w-5xl mx-auto pb-12">
+      {/* ── 1. Page Header and Period Selector ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#DDD7CB]/70">
         <div>
-          <span className="text-xs font-semibold tracking-wider uppercase text-neutral-500">
-            Reports & Review
-          </span>
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--kf-ink-deep,#20251F)] mt-0.5">
+          <h1 className="text-2xl sm:text-3xl font-normal text-[#20251F] tracking-tight">
             Financial Insights
           </h1>
-          <p className="text-xs text-neutral-500 mt-1">
+          <p className="text-xs sm:text-sm text-[#6B7268] mt-0.5">
             Understanding your cash flow, net spending burden, and savings rate.
           </p>
         </div>
 
         {/* Date Selector */}
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(Number(e.target.value))}
-            className="px-3 py-1.5 border border-[var(--kf-stone-soft,#DDD7CB)] rounded-lg text-xs bg-white text-neutral-900 outline-none font-medium focus:border-[var(--kf-ink-deep,#20251F)] transition"
+            aria-label="Select month"
+            className="px-3 py-2 border border-[#DDD7CB] rounded-[12px] text-xs bg-white text-[#20251F] outline-none font-medium hover:border-[#C4BEB1] focus:border-[#D99A37] transition-colors cursor-pointer shadow-2xs"
           >
             {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
               <option key={m} value={m}>
@@ -142,7 +165,8 @@ export const AnalyticsPage: React.FC = () => {
           <select
             value={selectedYear}
             onChange={(e) => setSelectedYear(Number(e.target.value))}
-            className="px-3 py-1.5 border border-[var(--kf-stone-soft,#DDD7CB)] rounded-lg text-xs bg-white text-neutral-900 outline-none font-medium focus:border-[var(--kf-ink-deep,#20251F)] transition"
+            aria-label="Select year"
+            className="px-3 py-2 border border-[#DDD7CB] rounded-[12px] text-xs bg-white text-[#20251F] outline-none font-medium hover:border-[#C4BEB1] focus:border-[#D99A37] transition-colors cursor-pointer shadow-2xs"
           >
             {[2024, 2025, 2026, 2027].map((y) => (
               <option key={y} value={y}>
@@ -154,149 +178,174 @@ export const AnalyticsPage: React.FC = () => {
       </div>
 
       {!hasActivity ? (
-        <div className="bg-white border border-[var(--kf-stone-soft,#DDD7CB)] rounded-2xl p-12 text-center shadow-2xs">
-          <BarChart3 className="w-10 h-10 text-neutral-300 mx-auto mb-3" />
-          <h3 className="text-base font-bold text-neutral-800 mb-1">
-            No transactions recorded for this month
-          </h3>
-          <p className="text-xs text-neutral-500 max-w-md mx-auto mb-5">
-            Add transactions for this period and KnowFin will compute your net spending, refunds returned, and savings rate.
-          </p>
+        /* ════════════════ STATE 3: EMPTY INSIGHTS STATE ════════════════ */
+        <div className="bg-white border border-[#DDD7CB] rounded-[18px] p-12 text-center shadow-2xs space-y-3">
+          <div className="w-12 h-12 mx-auto rounded-[14px] bg-[#F6F2E9] border border-[#DDD7CB]/80 flex items-center justify-center text-[#8E948B]">
+            <BarChart3 className="w-6 h-6 stroke-[1.5]" aria-hidden="true" />
+          </div>
+          <div className="space-y-1 max-w-md mx-auto">
+            <h3 className="text-base font-medium text-[#20251F]">
+              No transactions recorded for this month
+            </h3>
+            <p className="text-xs text-[#6B7268]">
+              Record income or expenses for this period to see your cash flow, refunds, and savings rate analysis.
+            </p>
+          </div>
           <button
+            type="button"
             onClick={() => setIsTxModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[var(--kf-ink-deep,#20251F)] text-[var(--kf-ivory-warm,#F6F2E9)] text-xs font-bold rounded-lg hover:opacity-90 transition shadow-xs"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-[#D99A37] hover:bg-[#C5882B] text-white text-xs font-medium rounded-[12px] transition-colors shadow-xs active:scale-[0.98]"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="w-3.5 h-3.5" aria-hidden="true" />
             <span>Add transaction</span>
           </button>
         </div>
       ) : (
         <>
-          {/* 1. Core Financial Breakdown: Income, Gross, Refunds, Net Spending, Savings, Rate */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="bg-white border border-[var(--kf-stone-soft,#DDD7CB)] rounded-xl p-4 shadow-2xs">
-              <div className="flex items-center justify-between text-xs text-neutral-500">
-                <span>Total Income</span>
-                <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-600" />
+          {/* ── 2. Summary Metric Cards: Income, Gross, Net Spending, Net Savings ── */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
+            {/* Total Income Card */}
+            <div className="bg-white border border-[#DDD7CB] rounded-[16px] p-4 shadow-2xs flex flex-col justify-between">
+              <div className="flex items-center justify-between text-xs text-[#6B7268]">
+                <span className="font-normal">Total Income</span>
+                <div className="w-6 h-6 rounded-[8px] bg-[#EEF7F2] border border-[#4C9B79]/20 flex items-center justify-center text-[#4C9B79]">
+                  <ArrowUpRight className="w-3.5 h-3.5 stroke-[2]" aria-hidden="true" />
+                </div>
               </div>
-              <div className="text-xl font-bold text-emerald-700 tracking-tight kf-tnum mt-1">
+              <div className="text-lg sm:text-xl font-normal text-[#4C9B79] tracking-tight kf-tnum mt-2">
                 +{formatAmount(totalIncome)}
               </div>
-              <span className="text-[11px] text-neutral-400 mt-0.5 block">Deposits & earnings</span>
+              <span className="text-[11px] text-[#8E948B] mt-0.5 block">Deposits & earnings</span>
             </div>
 
-            <div className="bg-white border border-[var(--kf-stone-soft,#DDD7CB)] rounded-xl p-4 shadow-2xs">
-              <div className="flex items-center justify-between text-xs text-neutral-500">
-                <span>Gross Spending</span>
-                <ArrowUpRight className="w-3.5 h-3.5 text-neutral-500" />
+            {/* Gross Spending Card */}
+            <div className="bg-white border border-[#DDD7CB] rounded-[16px] p-4 shadow-2xs flex flex-col justify-between">
+              <div className="flex items-center justify-between text-xs text-[#6B7268]">
+                <span className="font-normal">Gross Spending</span>
+                <div className="w-6 h-6 rounded-[8px] bg-[#FDF1EE] border border-[#E97962]/20 flex items-center justify-center text-[#E97962]">
+                  <ArrowDownRight className="w-3.5 h-3.5 stroke-[2]" aria-hidden="true" />
+                </div>
               </div>
-              <div className="text-xl font-bold text-neutral-800 tracking-tight kf-tnum mt-1">
+              <div className="text-lg sm:text-xl font-normal text-[#E97962] tracking-tight kf-tnum mt-2">
                 −{formatAmount(grossSpending)}
               </div>
-              <span className="text-[11px] text-neutral-400 mt-0.5 block">
+              <span className="text-[11px] text-[#8E948B] mt-0.5 block">
                 {totalRefunds > 0 ? `+${formatAmount(totalRefunds)} refunded` : 'All outflows'}
               </span>
             </div>
 
-            <div className="bg-white border border-[var(--kf-stone-soft,#DDD7CB)] rounded-xl p-4 shadow-2xs">
-              <div className="flex items-center justify-between text-xs text-neutral-500">
-                <span className="font-semibold text-neutral-700">Net Spending</span>
-                <RotateCcw className="w-3.5 h-3.5 text-[var(--kf-amber-warm,#D99A37)]" />
+            {/* Net Spending Card */}
+            <div className="bg-white border border-[#DDD7CB] rounded-[16px] p-4 shadow-2xs flex flex-col justify-between">
+              <div className="flex items-center justify-between text-xs text-[#6B7268]">
+                <span className="font-medium text-[#20251F]">Net Spending</span>
+                <div className="w-6 h-6 rounded-[8px] bg-[#FBF4E8] border border-[#D99A37]/25 flex items-center justify-center text-[#D99A37]">
+                  <RotateCcw className="w-3 h-3 stroke-[2]" aria-hidden="true" />
+                </div>
               </div>
-              <div className="text-xl font-extrabold text-[var(--kf-ink-deep,#20251F)] tracking-tight kf-tnum mt-1">
+              <div className="text-lg sm:text-xl font-medium text-[#20251F] tracking-tight kf-tnum mt-2">
                 −{formatAmount(netSpending)}
               </div>
-              <span className="text-[11px] text-neutral-400 mt-0.5 block">
+              <span className="text-[11px] text-[#8E948B] mt-0.5 block">
                 Avg {formatAmount(avgDailySpending)} / day
               </span>
             </div>
 
-            <div className="bg-white border border-[var(--kf-stone-soft,#DDD7CB)] rounded-xl p-4 shadow-2xs">
-              <div className="flex items-center justify-between text-xs text-neutral-500">
-                <span>Net Savings</span>
-                <PiggyBank className="w-3.5 h-3.5 text-neutral-500" />
+            {/* Net Savings Card */}
+            <div className="bg-white border border-[#DDD7CB] rounded-[16px] p-4 shadow-2xs flex flex-col justify-between">
+              <div className="flex items-center justify-between text-xs text-[#6B7268]">
+                <span className="font-normal">Net Savings</span>
+                <div
+                  className={`w-6 h-6 rounded-[8px] flex items-center justify-center ${
+                    netSavings >= 0
+                      ? 'bg-[#EEF7F2] border border-[#4C9B79]/20 text-[#4C9B79]'
+                      : 'bg-[#FDF1EE] border border-[#E97962]/20 text-[#E97962]'
+                  }`}
+                >
+                  <PiggyBank className="w-3.5 h-3.5 stroke-[1.75]" aria-hidden="true" />
+                </div>
               </div>
               <div
-                className={`text-xl font-bold tracking-tight kf-tnum mt-1 ${
-                  netSavings >= 0 ? 'text-emerald-700' : 'text-rose-600'
+                className={`text-lg sm:text-xl font-normal tracking-tight kf-tnum mt-2 ${
+                  netSavings >= 0 ? 'text-[#4C9B79]' : 'text-[#E97962]'
                 }`}
               >
                 {netSavings >= 0 ? '+' : ''}
                 {formatAmount(netSavings)}
               </div>
-              <span className="text-[11px] text-neutral-400 mt-0.5 block flex items-center gap-1">
-                <Percent className="w-3 h-3 inline" />
+              <span className="text-[11px] text-[#8E948B] mt-0.5 block flex items-center gap-1">
+                <Percent className="w-3 h-3 text-[#8B79C6]" aria-hidden="true" />
                 <span>Rate: {totalIncome > 0 ? `${savingsRate}%` : '—'}</span>
               </span>
             </div>
           </div>
 
-          {/* 2. Spending Breakdown: Predictable Commitments vs Variable Expenses */}
-          <div className="bg-white border border-[var(--kf-stone-soft,#DDD7CB)] rounded-2xl p-5 shadow-2xs grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-neutral-600">
-                <Calendar className="w-3.5 h-3.5 text-neutral-400" />
+          {/* ── 3. Spending Breakdown: Predictable Commitments vs Variable Expenses ── */}
+          <div className="bg-white border border-[#DDD7CB] rounded-[18px] p-5 shadow-2xs grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="p-3 bg-[#FAF8F3] rounded-[14px] border border-[#DDD7CB]/50">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-[#6B7268]">
+                <Calendar className="w-3.5 h-3.5 text-[#D99A37]" aria-hidden="true" />
                 <span>Fixed Commitments (Scheduled / Recurring)</span>
               </div>
-              <span className="text-xl font-bold text-neutral-900 kf-tnum mt-1 block">
+              <span className="text-xl font-normal text-[#20251F] kf-tnum mt-1 block">
                 {formatAmount(fixedExpenses)}
               </span>
-              <span className="text-[11px] text-neutral-400">
-                Predictable monthly subscriptions & bills
+              <span className="text-[11px] text-[#8E948B] mt-0.5 block">
+                Recurring templates are recorded upon transaction execution
               </span>
             </div>
-            <div>
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-neutral-600">
-                <Layers className="w-3.5 h-3.5 text-neutral-400" />
+
+            <div className="p-3 bg-[#FAF8F3] rounded-[14px] border border-[#DDD7CB]/50">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-[#6B7268]">
+                <Layers className="w-3.5 h-3.5 text-[#4778E5]" aria-hidden="true" />
                 <span>Variable Spending</span>
               </div>
-              <span className="text-xl font-bold text-neutral-900 kf-tnum mt-1 block">
+              <span className="text-xl font-normal text-[#20251F] kf-tnum mt-1 block">
                 {formatAmount(variableExpenses)}
               </span>
-              <span className="text-[11px] text-neutral-400">
+              <span className="text-[11px] text-[#8E948B] mt-0.5 block">
                 Discretionary and day-to-day dynamic expenses
               </span>
             </div>
           </div>
 
-          {/* 3. Daily Cash Flow Chart */}
-          <div className="bg-white border border-[var(--kf-stone-soft,#DDD7CB)] rounded-2xl p-6 shadow-2xs">
-            <div className="flex items-center justify-between mb-4">
+          {/* ── 4. Daily Cash Flow Chart ── */}
+          <div className="bg-white border border-[#DDD7CB] rounded-[18px] p-6 shadow-2xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
               <div>
-                <h3 className="text-sm font-bold text-neutral-900">Daily Cash Flow</h3>
-                <p className="text-[11px] text-neutral-500">Timeline of income received vs expenses paid</p>
+                <h2 className="text-sm font-medium text-[#20251F]">Daily Cash Flow</h2>
+                <p className="text-[11px] text-[#6B7268] mt-0.5">Timeline of income received vs expenses paid</p>
               </div>
-              <div className="flex items-center gap-4 text-xs">
-                <span className="flex items-center gap-1.5 text-neutral-600">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block" />
+              <div className="flex items-center gap-5 text-xs">
+                <span className="flex items-center gap-1.5 text-[#6B7268]">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#4C9B79] inline-block" />
                   Income
                 </span>
-                <span className="flex items-center gap-1.5 text-neutral-600">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[var(--kf-ink-deep,#20251F)] inline-block" />
+                <span className="flex items-center gap-1.5 text-[#6B7268]">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#E97962] inline-block" />
                   Expense
                 </span>
               </div>
             </div>
 
             {flowPoints.length === 0 ? (
-              <div className="text-center py-12 text-xs text-neutral-400">
+              <div className="text-center py-12 text-xs text-[#8E948B]">
                 No daily cash flow data for this period.
               </div>
             ) : (
-              <div className="h-64 w-full">
+              <div className="h-64 w-full pt-2">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={flowPoints} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#EDEBE4" />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#EBE6DC" />
                     <XAxis
                       dataKey="date"
                       tickLine={false}
                       axisLine={{ stroke: '#DDD7CB' }}
-                      tick={{ fill: '#737373', fontSize: 11 }}
+                      tick={{ fill: '#8E948B', fontSize: 11 }}
                     />
                     <YAxis
                       tickLine={false}
                       axisLine={false}
-                      tick={{ fill: '#737373', fontSize: 11 }}
+                      tick={{ fill: '#8E948B', fontSize: 11 }}
                       tickFormatter={(v) => `${v}`}
                     />
                     <Tooltip
@@ -304,64 +353,66 @@ export const AnalyticsPage: React.FC = () => {
                       contentStyle={{
                         backgroundColor: '#FFFFFF',
                         border: '1px solid #DDD7CB',
-                        borderRadius: '8px',
-                        fontSize: '12px',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                        borderRadius: '12px',
+                        fontSize: '11px',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.04)',
                       }}
                     />
-                    <Bar dataKey="Income" fill="#059669" radius={[4, 4, 0, 0]} maxBarSize={28} />
-                    <Bar dataKey="Expense" fill="#20251F" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                    <Bar dataKey="Income" name="Income" fill="#4C9B79" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                    <Bar dataKey="Expense" name="Expense" fill="#E97962" radius={[4, 4, 0, 0]} maxBarSize={28} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             )}
           </div>
 
-          {/* 4. Category Breakdown List */}
-          <div className="bg-white border border-[var(--kf-stone-soft,#DDD7CB)] rounded-2xl p-6 shadow-2xs">
-            <div className="flex items-center justify-between pb-3 border-b border-[var(--kf-stone-soft,#DDD7CB)] mb-4">
+          {/* ── 5. Category Breakdown List ── */}
+          <div className="bg-white border border-[#DDD7CB] rounded-[18px] p-6 shadow-2xs">
+            <div className="flex items-center justify-between pb-3 border-b border-[#DDD7CB]/60 mb-4">
               <div>
-                <h3 className="text-sm font-bold text-neutral-900">Spending by Category</h3>
-                <p className="text-[11px] text-neutral-500">Distribution of monthly expenses</p>
+                <h2 className="text-sm font-medium text-[#20251F]">Spending by Category</h2>
+                <p className="text-[11px] text-[#6B7268] mt-0.5">Distribution of monthly expenses</p>
               </div>
-              <span className="text-xs font-bold text-neutral-800 kf-tnum">
-                Net Total: {formatAmount(netSpending)}
+              <span className="text-xs font-medium text-[#20251F] kf-tnum">
+                Net total: {formatAmount(netSpending)}
               </span>
             </div>
 
             {chartCategories.length === 0 ? (
-              <div className="text-center py-8 text-xs text-neutral-400">
+              <div className="text-center py-8 text-xs text-[#8E948B]">
                 No categorized spending this month.
               </div>
             ) : (
-              <div className="space-y-3.5">
+              <div className="space-y-4">
                 {chartCategories.map((c) => (
                   <div key={c.name} className="space-y-1.5">
                     <div className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-6 h-6 rounded-md flex items-center justify-center text-white text-[10px]"
-                          style={{ backgroundColor: c.color || '#20251F' }}
-                        >
-                          <CategoryIcon iconName={c.icon} className="w-3.5 h-3.5" />
-                        </div>
-                        <span className="font-semibold text-neutral-800">{c.name}</span>
-                        <span className="text-[10px] text-neutral-400">
+                      <div className="flex items-center gap-2.5">
+                        <CategorySquircle
+                          iconName={c.icon}
+                          color={c.color}
+                          size="sm"
+                        />
+                        <span className="font-normal text-[#20251F]">{c.name}</span>
+                        <span className="text-[10px] text-[#8E948B]">
                           ({c.count} transaction{c.count === 1 ? '' : 's'})
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 font-bold text-neutral-900 kf-tnum">
+                      <div className="flex items-center gap-2 font-medium text-[#20251F] kf-tnum">
                         <span>{formatAmount(c.amount)}</span>
-                        <span className="text-neutral-400 text-[11px] font-normal w-12 text-right">
+                        <span className="text-[#6B7268] text-[11px] font-normal w-12 text-right">
                           {c.percentage.toFixed(1)}%
                         </span>
                       </div>
                     </div>
 
-                    <div className="w-full h-1.5 bg-stone-100 rounded-full overflow-hidden">
+                    <div className="w-full h-1.5 bg-[#F6F2E9] rounded-full overflow-hidden border border-[#DDD7CB]/40">
                       <div
-                        className="h-full bg-[var(--kf-ink-deep,#20251F)] rounded-full transition-all duration-300"
-                        style={{ width: `${Math.min(c.percentage, 100)}%` }}
+                        className="h-full rounded-full transition-all duration-300"
+                        style={{
+                          backgroundColor: c.color || '#4778E5',
+                          width: `${Math.min(c.percentage, 100)}%`,
+                        }}
                       />
                     </div>
                   </div>
@@ -372,6 +423,7 @@ export const AnalyticsPage: React.FC = () => {
         </>
       )}
 
+      {/* Quick Add Modal */}
       <TransactionModal
         isOpen={isTxModalOpen}
         onClose={() => setIsTxModalOpen(false)}

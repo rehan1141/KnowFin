@@ -11,17 +11,7 @@ import {
   Receipt,
   AlertCircle,
   HelpCircle,
-  Utensils,
-  Car,
-  Home,
-  ShoppingBag,
-  HeartPulse,
-  Gamepad2,
-  Tv,
-  Plane,
-  Sparkles,
-  GraduationCap,
-  Folder,
+  Calendar,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -41,6 +31,7 @@ import { useCurrency } from '../contexts/CurrencyContext';
 import { analyticsService } from '../services/analyticsService';
 import { expenseService } from '../services/expenseService';
 import { TransactionModal } from '../components/transactions/TransactionModal';
+import { CategorySquircle } from '../utils/categoryIcons';
 import { formatShortDate } from '../utils/formatters';
 import type {
   MonthlySummary,
@@ -51,23 +42,7 @@ import type {
   BudgetStatusItem,
 } from '../types';
 
-const CATEGORY_ICONS: Record<string, React.ElementType> = {
-  Utensils,
-  Car,
-  Home,
-  House: Home,
-  Receipt,
-  ShoppingBag,
-  HeartPulse,
-  Gamepad2,
-  Tv,
-  Plane,
-  Sparkles,
-  GraduationCap,
-  Folder,
-};
-
-const CHART_COLORS = ['#D99A37', '#2563EB', '#C2410C', '#059669', '#7C3AED', '#64748B'];
+const PALETTE_COLORS = ['#E97962', '#4778E5', '#D99A37', '#4C9B79', '#8B79C6', '#20251F'];
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
@@ -140,8 +115,8 @@ export const DashboardPage: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
         <div className="w-10 h-10 rounded-full border-3 border-[#DDD7CB] border-t-[#D99A37] animate-spin mb-4" />
-        <h2 className="text-base font-medium text-[#20251F]">Loading your data...</h2>
-        <p className="text-xs text-[#6B7268] mt-1">This should only take a moment.</p>
+        <h2 className="text-base font-normal text-[#20251F]">Loading your financial overview...</h2>
+        <p className="text-xs text-[#6B7268] mt-1">Fetching your latest account and transaction records.</p>
       </div>
     );
   }
@@ -150,14 +125,15 @@ export const DashboardPage: React.FC = () => {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6 max-w-md mx-auto">
-        <div className="w-14 h-14 rounded-full bg-[#FEF3EE] flex items-center justify-center text-[#C2410C] mb-4">
-          <AlertCircle className="w-7 h-7 stroke-[2]" />
+        <div className="w-14 h-14 rounded-[16px] bg-[#FDF1EE] border border-[#E97962]/20 flex items-center justify-center text-[#E97962] mb-4">
+          <AlertCircle className="w-7 h-7 stroke-[1.75]" />
         </div>
-        <h2 className="text-lg font-medium text-[#20251F]">Could not load your financial data</h2>
-        <p className="text-xs text-[#6B7268] mt-1 mb-5">{error}</p>
+        <h2 className="text-lg font-normal text-[#20251F]">Could not load your overview</h2>
+        <p className="text-xs text-[#6B7268] mt-1.5 mb-5 leading-relaxed">{error}</p>
         <button
+          type="button"
           onClick={loadData}
-          className="py-2.5 px-5 rounded-[12px] bg-[#D99A37] text-white hover:bg-[#C5882B] text-xs font-medium transition-colors shadow-xs"
+          className="py-2.5 px-5 rounded-[12px] bg-[#D99A37] text-white hover:bg-[#C5882B] text-xs font-medium transition-colors shadow-xs active:scale-[0.98]"
         >
           Try again
         </button>
@@ -176,7 +152,7 @@ export const DashboardPage: React.FC = () => {
     ? Number(summary.net_spending)
     : Math.max(0, grossSpending - totalRefunds);
 
-  // Fallback six-month comparison for bar chart
+  // Six-month trend data for comparison chart
   const sixMonthsTrend =
     cashFlowData.length > 0
       ? cashFlowData
@@ -202,9 +178,12 @@ export const DashboardPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
           {/* Period Selector */}
-          <div className="relative">
+          <div className="relative inline-flex items-center">
+            <span className="absolute left-3 pointer-events-none text-[#6B7268]">
+              <Calendar className="w-3.5 h-3.5" aria-hidden="true" />
+            </span>
             <select
               value={`${selectedYear}-${selectedMonth}`}
               onChange={(e) => {
@@ -212,7 +191,8 @@ export const DashboardPage: React.FC = () => {
                 setSelectedYear(Number(y));
                 setSelectedMonth(Number(m));
               }}
-              className="py-2.5 px-3.5 text-xs font-medium text-[#20251F] bg-white border border-[#DDD7CB] rounded-[14px] hover:border-[#C4BEB1] outline-none cursor-pointer shadow-2xs"
+              aria-label="Select reporting period"
+              className="py-2.5 pl-8 pr-3.5 text-xs font-medium text-[#20251F] bg-white border border-[#DDD7CB] rounded-[12px] hover:border-[#C4BEB1] outline-none cursor-pointer shadow-2xs transition-colors"
             >
               <option value="2026-10">October 2026</option>
               <option value="2026-9">September 2026</option>
@@ -225,10 +205,11 @@ export const DashboardPage: React.FC = () => {
 
           {/* Primary Quick Add Button */}
           <button
+            type="button"
             onClick={() => handleOpenQuickAdd('expense')}
-            className="inline-flex items-center gap-1.5 py-2.5 px-4 bg-[#D99A37] hover:bg-[#C5882B] text-white text-xs font-medium rounded-[14px] transition-colors shadow-xs"
+            className="inline-flex items-center gap-1.5 py-2.5 px-4 bg-[#D99A37] hover:bg-[#C5882B] text-white text-xs font-medium rounded-[12px] transition-colors shadow-xs active:scale-[0.98]"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="w-3.5 h-3.5" aria-hidden="true" />
             <span>Add transaction</span>
           </button>
         </div>
@@ -242,7 +223,9 @@ export const DashboardPage: React.FC = () => {
             <div>
               <div className="flex items-center gap-1.5 text-xs font-medium text-[#6B7268]">
                 <span>Current balance</span>
-                <HelpCircle className="w-3.5 h-3.5 text-[#8E948B]" />
+                <span title="Calculated from your initial balance plus recorded income and net spending">
+                  <HelpCircle className="w-3.5 h-3.5 text-[#8E948B] cursor-help" aria-hidden="true" />
+                </span>
               </div>
 
               {isBalanceSet ? (
@@ -251,7 +234,7 @@ export const DashboardPage: React.FC = () => {
                     {formatAmount(currentBalance)}
                   </div>
                   <p className="text-xs text-[#6B7268] mt-1.5">
-                    Based on your opening balance and transactions.
+                    Based on your opening balance and tracked transactions.
                   </p>
                 </div>
               ) : (
@@ -260,32 +243,33 @@ export const DashboardPage: React.FC = () => {
                     Balance not set
                   </div>
                   <p className="text-xs text-[#6B7268] mt-1.5">
-                    Set an opening balance in Settings to track it.
+                    Operating in cash-flow mode. Set an opening balance in Settings to track your total net worth.
                   </p>
                   <div className="mt-4">
                     <Link
                       to="/settings"
-                      className="inline-flex items-center gap-1.5 py-2 px-3.5 rounded-[12px] bg-[#F6F2E9] text-[#20251F] hover:bg-[#DDD7CB] text-xs font-medium transition-colors border border-[#DDD7CB]"
+                      className="inline-flex items-center gap-1.5 py-2 px-3.5 rounded-[12px] bg-[#FAF8F3] hover:bg-[#F6F2E9] text-[#20251F] text-xs font-medium transition-colors border border-[#DDD7CB] shadow-2xs"
                     >
                       <span>Set opening balance</span>
-                      <ArrowRight className="w-3 h-3" />
+                      <ArrowRight className="w-3.5 h-3.5 text-[#D99A37]" aria-hidden="true" />
                     </Link>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Subtle Wallet Icon/Illustration */}
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-[18px] bg-[#F6F2E9] border border-[#DDD7CB]/70 flex items-center justify-center text-[#8E948B] shrink-0">
-              <Wallet className="w-8 h-8 sm:w-10 sm:h-10 stroke-[1.5] text-[#A69F91]" />
+            {/* Subtle Wallet Icon Treatment */}
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-[16px] bg-[#F6F2E9] border border-[#DDD7CB]/80 flex items-center justify-center text-[#D99A37] shrink-0">
+              <Wallet className="w-7 h-7 sm:w-8 sm:h-8 stroke-[1.75]" aria-hidden="true" />
             </div>
           </div>
 
           {isBalanceSet && (
             <div className="pt-4 mt-4 border-t border-[#DDD7CB]/60 flex items-center justify-between text-xs">
               <span className="text-[#6B7268]">Tracked across active accounts</span>
-              <Link to="/analytics" className="text-[#D99A37] hover:underline font-medium">
-                View insights →
+              <Link to="/analytics" className="text-[#4778E5] hover:underline font-medium inline-flex items-center gap-1">
+                <span>View analytics</span>
+                <ArrowRight className="w-3 h-3" aria-hidden="true" />
               </Link>
             </div>
           )}
@@ -293,15 +277,18 @@ export const DashboardPage: React.FC = () => {
 
         {/* Right Hero: This Month Summary Card (35% width) */}
         <div className="lg:col-span-5 kf-card p-6 sm:p-7 flex flex-col justify-between">
-          <div className="pb-3 border-b border-[#DDD7CB]/60">
-            <h2 className="text-xs font-medium text-[#6B7268]">This month</h2>
+          <div className="pb-3 border-b border-[#DDD7CB]/60 flex items-center justify-between">
+            <h2 className="text-xs font-medium text-[#6B7268] uppercase tracking-wider">This month</h2>
+            <span className="text-[11px] text-[#8E948B]">Overview</span>
           </div>
 
-          <div className="space-y-3.5 py-2">
+          <div className="space-y-3 py-2.5">
             {/* Income */}
             <div className="flex items-center justify-between text-xs sm:text-sm">
-              <div className="flex items-center gap-2 text-[#2E7D5B]">
-                <ArrowUpRight className="w-4 h-4" />
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-[9px] bg-[#EEF7F2] border border-[#4C9B79]/20 flex items-center justify-center text-[#4C9B79] shrink-0">
+                  <ArrowUpRight className="w-4 h-4 stroke-[2]" aria-hidden="true" />
+                </div>
                 <span className="font-normal text-[#20251F]">Income</span>
               </div>
               <span className="font-medium text-[#20251F] kf-tnum">
@@ -311,9 +298,11 @@ export const DashboardPage: React.FC = () => {
 
             {/* Spending (Gross) */}
             <div className="flex items-center justify-between text-xs sm:text-sm">
-              <div className="flex items-center gap-2 text-[#C2410C]">
-                <ArrowDownRight className="w-4 h-4" />
-                <span className="font-normal text-[#20251F]">Spending</span>
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-[9px] bg-[#FDF1EE] border border-[#E97962]/20 flex items-center justify-center text-[#E97962] shrink-0">
+                  <ArrowDownRight className="w-4 h-4 stroke-[2]" aria-hidden="true" />
+                </div>
+                <span className="font-normal text-[#20251F]">Gross spending</span>
               </div>
               <span className="font-medium text-[#20251F] kf-tnum">
                 {formatAmount(grossSpending)}
@@ -322,8 +311,10 @@ export const DashboardPage: React.FC = () => {
 
             {/* Refunds */}
             <div className="flex items-center justify-between text-xs sm:text-sm">
-              <div className="flex items-center gap-2 text-[#2563EB]">
-                <RotateCcw className="w-3.5 h-3.5" />
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-[9px] bg-[#EDF3FE] border border-[#4778E5]/20 flex items-center justify-center text-[#4778E5] shrink-0">
+                  <RotateCcw className="w-3.5 h-3.5 stroke-[2]" aria-hidden="true" />
+                </div>
                 <span className="font-normal text-[#20251F]">Refunds</span>
               </div>
               <span className="font-medium text-[#20251F] kf-tnum">
@@ -333,8 +324,10 @@ export const DashboardPage: React.FC = () => {
 
             {/* Net Spending */}
             <div className="pt-2.5 border-t border-[#DDD7CB]/60 flex items-center justify-between text-xs sm:text-sm">
-              <div className="flex items-center gap-2 text-[#D99A37]">
-                <BarChart2 className="w-4 h-4" />
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-[9px] bg-[#FBF4E8] border border-[#D99A37]/25 flex items-center justify-center text-[#D99A37] shrink-0">
+                  <BarChart2 className="w-3.5 h-3.5 stroke-[2]" aria-hidden="true" />
+                </div>
                 <span className="font-medium text-[#20251F]">Net spending</span>
               </div>
               <span className="font-medium text-[#20251F] kf-tnum">
@@ -351,7 +344,13 @@ export const DashboardPage: React.FC = () => {
         <div className="kf-card p-6 flex flex-col justify-between">
           <div className="flex items-center justify-between pb-3 border-b border-[#DDD7CB]/60">
             <h2 className="text-sm font-medium text-[#20251F]">Spending by category</h2>
-            <span className="text-[11px] text-[#6B7268]">All categories ▾</span>
+            <Link
+              to="/analytics"
+              className="text-xs text-[#4778E5] hover:underline font-medium inline-flex items-center gap-0.5"
+            >
+              <span>Details</span>
+              <ArrowRight className="w-3 h-3" aria-hidden="true" />
+            </Link>
           </div>
 
           {categories.length === 0 ? (
@@ -377,7 +376,7 @@ export const DashboardPage: React.FC = () => {
                       {categories.map((entry, idx) => (
                         <Cell
                           key={`cell-${entry.category_id || idx}`}
-                          fill={entry.color || CHART_COLORS[idx % CHART_COLORS.length]}
+                          fill={entry.color || PALETTE_COLORS[idx % PALETTE_COLORS.length]}
                         />
                       ))}
                     </Pie>
@@ -414,7 +413,7 @@ export const DashboardPage: React.FC = () => {
                         className="w-2.5 h-2.5 rounded-full shrink-0"
                         style={{
                           backgroundColor:
-                            cat.color || CHART_COLORS[idx % CHART_COLORS.length],
+                            cat.color || PALETTE_COLORS[idx % PALETTE_COLORS.length],
                         }}
                       />
                       <span className="text-[#20251F] truncate">{cat.category}</span>
@@ -436,7 +435,7 @@ export const DashboardPage: React.FC = () => {
         <div className="kf-card p-6 flex flex-col justify-between">
           <div className="flex items-center justify-between pb-3 border-b border-[#DDD7CB]/60">
             <h2 className="text-sm font-medium text-[#20251F]">Income vs. spending</h2>
-            <span className="text-[11px] text-[#6B7268]">Last 6 months ▾</span>
+            <span className="text-[11px] text-[#6B7268]">Last 6 months</span>
           </div>
 
           <div className="h-48 py-3">
@@ -458,19 +457,19 @@ export const DashboardPage: React.FC = () => {
                     fontSize: '11px',
                   }}
                 />
-                <Bar dataKey="income" name="Income" fill="#20251F" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="spending" name="Spending" fill="#D99A37" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="income" name="Income" fill="#4C9B79" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="spending" name="Spending" fill="#E97962" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
 
           <div className="flex items-center justify-center gap-6 pt-2 text-xs text-[#6B7268]">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-xs bg-[#20251F]" />
+              <span className="w-2.5 h-2.5 rounded-xs bg-[#4C9B79]" />
               <span>Income</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-xs bg-[#D99A37]" />
+              <span className="w-2.5 h-2.5 rounded-xs bg-[#E97962]" />
               <span>Spending</span>
             </div>
           </div>
@@ -482,10 +481,10 @@ export const DashboardPage: React.FC = () => {
             <h2 className="text-sm font-medium text-[#20251F]">Recent budgets</h2>
             <Link
               to="/budgets"
-              className="text-xs text-[#D99A37] hover:underline font-medium inline-flex items-center gap-0.5"
+              className="text-xs text-[#4778E5] hover:underline font-medium inline-flex items-center gap-0.5"
             >
               <span>View all</span>
-              <ArrowRight className="w-3 h-3" />
+              <ArrowRight className="w-3 h-3" aria-hidden="true" />
             </Link>
           </div>
 
@@ -499,24 +498,29 @@ export const DashboardPage: React.FC = () => {
                 const limit = Number(bud.monthly_limit || 0);
                 const spent = Number(bud.total_spent || 0);
                 const pct = limit > 0 ? Math.min((spent / limit) * 100, 100) : 0;
-                const IconComp = CATEGORY_ICONS[bud.category_icon] || Folder;
+                const isOver = spent > limit && limit > 0;
+                const isNear = pct >= 80 && !isOver;
 
                 return (
                   <div key={bud.budget_id} className="space-y-1.5">
                     <div className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-md bg-[#F6F2E9] border border-[#DDD7CB] flex items-center justify-center text-[#D99A37]">
-                          <IconComp className="w-3.5 h-3.5" />
-                        </div>
+                        <CategorySquircle
+                          iconName={bud.category_icon}
+                          color={bud.category_color}
+                          size="sm"
+                        />
                         <span className="font-normal text-[#20251F]">{bud.category_name}</span>
                       </div>
                       <span className="text-[#6B7268] kf-tnum">
                         {formatAmount(spent)} / {formatAmount(limit)}
                       </span>
                     </div>
-                    <div className="w-full h-1.5 bg-[#F6F2E9] rounded-full overflow-hidden">
+                    <div className="w-full h-2 bg-[#F6F2E9] rounded-full overflow-hidden p-0.5 border border-[#DDD7CB]/40">
                       <div
-                        className="h-full bg-[#D99A37] rounded-full transition-all duration-300"
+                        className={`h-full rounded-full transition-all duration-300 ${
+                          isOver ? 'bg-[#E97962]' : isNear ? 'bg-[#D99A37]' : 'bg-[#4C9B79]'
+                        }`}
                         style={{ width: `${pct}%` }}
                       />
                     </div>
@@ -532,7 +536,7 @@ export const DashboardPage: React.FC = () => {
               className="text-[11px] text-[#6B7268] hover:text-[#20251F] inline-flex items-center gap-1"
             >
               <span>Manage budgets</span>
-              <ArrowRight className="w-3 h-3" />
+              <ArrowRight className="w-3 h-3" aria-hidden="true" />
             </Link>
           </div>
         </div>
@@ -540,7 +544,7 @@ export const DashboardPage: React.FC = () => {
 
       {/* ── 4. Bottom Row: Recent Transactions (Left) & Spending Trend (Right) ── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        {/* Recent Transactions (7 cols) */}
+        {/* Recent Transactions (8 cols) */}
         <div className="lg:col-span-8 kf-card p-6">
           <div className="flex items-center justify-between pb-3 border-b border-[#DDD7CB]/60 mb-2">
             <div>
@@ -548,31 +552,31 @@ export const DashboardPage: React.FC = () => {
             </div>
             <Link
               to="/transactions"
-              className="text-xs text-[#D99A37] hover:underline font-medium inline-flex items-center gap-0.5"
+              className="text-xs text-[#4778E5] hover:underline font-medium inline-flex items-center gap-0.5"
             >
               <span>View all</span>
-              <ArrowRight className="w-3 h-3" />
+              <ArrowRight className="w-3 h-3" aria-hidden="true" />
             </Link>
           </div>
 
           {recentTransactions.length === 0 ? (
             /* ════════════════ STATE 3: EMPTY TRANSACTIONS STATE ════════════════ */
             <div className="text-center py-10 space-y-3">
-              <div className="w-12 h-12 mx-auto rounded-full bg-[#F6F2E9] flex items-center justify-center text-[#8E948B]">
-                <Receipt className="w-6 h-6 stroke-[1.5]" />
+              <div className="w-12 h-12 mx-auto rounded-[14px] bg-[#F6F2E9] border border-[#DDD7CB]/80 flex items-center justify-center text-[#8E948B]">
+                <Receipt className="w-6 h-6 stroke-[1.5]" aria-hidden="true" />
               </div>
               <div className="space-y-0.5">
                 <p className="text-sm font-medium text-[#20251F]">No transactions yet</p>
                 <p className="text-xs text-[#6B7268]">
-                  Add your first expense or income to get started.
+                  Add your first expense, income, or transfer to get started.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => handleOpenQuickAdd('expense')}
-                className="py-2 px-4 rounded-[12px] bg-[#D99A37] text-white hover:bg-[#C5882B] text-xs font-medium transition-colors shadow-xs inline-flex items-center gap-1.5"
+                className="py-2 px-4 rounded-[12px] bg-[#D99A37] text-white hover:bg-[#C5882B] text-xs font-medium transition-colors shadow-xs inline-flex items-center gap-1.5 active:scale-[0.98]"
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-3.5 h-3.5" aria-hidden="true" />
                 <span>Add transaction</span>
               </button>
             </div>
@@ -582,17 +586,18 @@ export const DashboardPage: React.FC = () => {
                 const isIncome = tx.transaction_type === 'income';
                 const isRefund = tx.transaction_type === 'refund';
                 const isTransfer = tx.transaction_type === 'transfer';
-                const IconComp = CATEGORY_ICONS[tx.category_icon || 'Folder'] || Folder;
 
                 return (
                   <div
                     key={tx.id}
-                    className="py-3 flex items-center justify-between text-xs hover:bg-[#FAF8F3] px-1 rounded-lg transition-colors"
+                    className="py-3 flex items-center justify-between text-xs hover:bg-[#FAF8F3] px-2 rounded-xl transition-colors"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-8 h-8 rounded-lg bg-[#F6F2E9] border border-[#DDD7CB] flex items-center justify-center text-[#D99A37] shrink-0">
-                        <IconComp className="w-4 h-4" />
-                      </div>
+                      <CategorySquircle
+                        iconName={tx.category_icon}
+                        color={tx.category_color}
+                        size="sm"
+                      />
                       <div className="min-w-0">
                         <p className="font-normal text-[#20251F] truncate">
                           {tx.title}
@@ -607,9 +612,9 @@ export const DashboardPage: React.FC = () => {
                       <span
                         className={`font-medium kf-tnum ${
                           isIncome
-                            ? 'text-[#2E7D5B]'
+                            ? 'text-[#4C9B79]'
                             : isRefund
-                            ? 'text-[#2563EB]'
+                            ? 'text-[#4778E5]'
                             : isTransfer
                             ? 'text-[#6B7268]'
                             : 'text-[#20251F]'
@@ -635,22 +640,16 @@ export const DashboardPage: React.FC = () => {
             <h2 className="text-sm font-medium text-[#20251F]">Spending trend</h2>
             <Link
               to="/analytics"
-              className="text-xs text-[#D99A37] hover:underline font-medium inline-flex items-center gap-0.5"
+              className="text-xs text-[#4778E5] hover:underline font-medium inline-flex items-center gap-0.5"
             >
               <span>See insights</span>
-              <ArrowRight className="w-3 h-3" />
+              <ArrowRight className="w-3 h-3" aria-hidden="true" />
             </Link>
           </div>
 
           <div className="h-44 py-2">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={sixMonthsTrend} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="spendingGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#D99A37" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#D99A37" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
                 <XAxis dataKey="month" stroke="#8E948B" fontSize={10} tickLine={false} />
                 <YAxis
                   stroke="#8E948B"
@@ -670,10 +669,10 @@ export const DashboardPage: React.FC = () => {
                 <Area
                   type="monotone"
                   dataKey="spending"
-                  stroke="#D99A37"
+                  stroke="#E97962"
                   strokeWidth={2}
-                  fillOpacity={1}
-                  fill="url(#spendingGradient)"
+                  fillOpacity={0.12}
+                  fill="#E97962"
                 />
               </AreaChart>
             </ResponsiveContainer>
