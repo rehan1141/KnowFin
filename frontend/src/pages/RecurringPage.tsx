@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Trash2, Edit2, Clock } from 'lucide-react';
+import { Plus, Trash2, Edit2, Clock, HelpCircle } from 'lucide-react';
 import { recurringService } from '../services/recurringService';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { CategoryIcon } from '../utils/categoryIcons';
@@ -26,7 +26,7 @@ export const RecurringPage: React.FC = () => {
       setUpcomingItems(upcomingRes.items);
       setTotalUpcoming(Number(upcomingRes.total_upcoming_expenses));
     } catch {
-      // Handled
+      // Handled silently
     } finally {
       setIsLoading(false);
     }
@@ -49,25 +49,25 @@ export const RecurringPage: React.FC = () => {
   };
 
   const handleDelete = async (id: number, title: string) => {
-    if (confirm(`Remove recurring rule "${title}"?`)) {
+    if (window.confirm(`Remove recurring rule "${title}"?`)) {
       await recurringService.delete(id);
       await loadData();
     }
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
+    <div className="space-y-6 animate-in fade-in duration-200 max-w-5xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2 border-b border-[#E8E6DF]">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2 border-b border-[var(--kf-stone-soft,#DDD7CB)]">
         <div>
           <span className="text-xs font-semibold tracking-wider uppercase text-neutral-500">
             Fixed Commitments & Subscriptions
           </span>
-          <h1 className="text-2xl font-bold tracking-tight text-neutral-900 mt-0.5">
-            Recurring Payments
+          <h1 className="text-2xl font-bold tracking-tight text-[var(--kf-ink-deep,#20251F)] mt-0.5">
+            Recurring Plans
           </h1>
           <p className="text-xs text-neutral-500 mt-1">
-            Track fixed expenses like Rent, Phone, Netflix, and Gym due each month
+            Track fixed commitments like rent, subscriptions, and memberships due each month.
           </p>
         </div>
 
@@ -76,135 +76,134 @@ export const RecurringPage: React.FC = () => {
             setEditingRule(null);
             setIsModalOpen(true);
           }}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#164A3A] text-white text-xs font-bold rounded-lg hover:bg-[#12382c] transition shadow-xs self-start sm:self-auto"
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-[var(--kf-ink-deep,#20251F)] text-[var(--kf-ivory-warm,#F6F2E9)] text-xs font-bold rounded-lg hover:opacity-90 transition shadow-xs self-start sm:self-auto cursor-pointer"
         >
           <Plus className="w-4 h-4" />
-          <span>Add Recurring Bill</span>
+          <span>Add Recurring Plan</span>
         </button>
       </div>
 
       {/* Aggregate Obligations Banner */}
-      <div className="bg-white border border-[#E8E6DF] rounded-2xl p-6 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white border border-[var(--kf-stone-soft,#DDD7CB)] rounded-2xl p-6 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
-            Committed Next 30 Days
+            Committed for Next 30 Days
           </span>
-          <div className="text-3xl font-black text-neutral-900 tracking-tight mt-1">
+          <div className="text-3xl font-extrabold text-[var(--kf-ink-deep,#20251F)] tracking-tight mt-1 kf-tnum">
             {formatAmount(totalUpcoming)}
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-neutral-500 mt-1.5">
+            <HelpCircle className="w-3.5 h-3.5 text-neutral-400" />
+            <span>Recurring rules are schedule templates and do not inflate historical spending until executed.</span>
           </div>
         </div>
         <div className="text-xs text-neutral-500">
-          <strong>{upcomingItems.length}</strong> planned payment{upcomingItems.length === 1 ? '' : 's'} upcoming
+          <strong>{upcomingItems.length}</strong> planned obligation{upcomingItems.length === 1 ? '' : 's'} upcoming
         </div>
       </div>
 
-      {/* Upcoming Bills Strip */}
-      {upcomingItems.length > 0 && (
-        <div className="bg-white border border-[#E8E6DF] rounded-2xl p-6 shadow-2xs">
-          <div className="flex items-center gap-2 mb-4">
-            <Clock className="w-4 h-4 text-[#164A3A]" />
-            <h2 className="text-sm font-bold text-neutral-900">Upcoming in Next 30 Days</h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {upcomingItems.map((item) => (
-              <div
-                key={item.id}
-                className="p-3.5 rounded-xl border border-[#E8E6DF] flex items-center justify-between"
-              >
-                <div className="flex items-center gap-2.5">
-                  <div
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-white"
-                    style={{ backgroundColor: item.category_color || '#3B82F6' }}
-                  >
-                    <CategoryIcon iconName={item.category_icon} className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-neutral-900 block leading-tight">
-                      {item.title}
-                    </span>
-                    <span className="text-[10px] text-neutral-500">
-                      {item.category_name || 'Bill'}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <span className="text-xs font-extrabold text-neutral-900 block">
-                    {formatAmount(item.amount)}
-                  </span>
-                  <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
-                    {item.days_until_due === 0
-                      ? 'Due today'
-                      : item.days_until_due === 1
-                      ? 'Due tomorrow'
-                      : `in ${item.days_until_due} days`}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
+      {/* Recurring Rules List */}
+      <div className="bg-white border border-[var(--kf-stone-soft,#DDD7CB)] rounded-2xl overflow-hidden shadow-2xs">
+        <div className="p-4 border-b border-[var(--kf-stone-soft,#DDD7CB)] bg-stone-50/50 flex items-center justify-between">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-700">
+            Active Recurring Templates ({recurringRules.length})
+          </h3>
         </div>
-      )}
-
-      {/* Full Recurring Rules Ledger */}
-      <div className="bg-white border border-[#E8E6DF] rounded-2xl p-6 shadow-2xs">
-        <h2 className="text-sm font-bold text-neutral-900 mb-4">Active Recurring Templates</h2>
 
         {isLoading ? (
-          <div className="text-center py-12 text-neutral-400 text-xs">Loading recurring rules...</div>
+          <div className="text-center py-24 text-neutral-400 text-xs">Loading recurring plans...</div>
         ) : recurringRules.length === 0 ? (
-          <div className="text-center py-12 text-neutral-500 text-xs">
-            No recurring rules established yet.
+          <div className="text-center py-12 text-neutral-400 text-xs">
+            <p className="text-sm font-semibold text-neutral-800 mb-1">No recurring rules configured</p>
+            <p className="mb-4">Add your recurring subscriptions, rent, or scheduled bills.</p>
+            <button
+              onClick={() => {
+                setEditingRule(null);
+                setIsModalOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-[var(--kf-ink-deep,#20251F)] text-white text-xs font-bold rounded-lg hover:opacity-90 transition shadow-xs"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add recurring rule</span>
+            </button>
           </div>
         ) : (
-          <div className="divide-y divide-[#E8E6DF]">
-            {recurringRules.map((rule) => (
-              <div key={rule.id} className="py-3.5 flex items-center justify-between group">
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-9 h-9 rounded-xl flex items-center justify-center text-white shrink-0"
-                    style={{ backgroundColor: rule.category_color || '#3B82F6' }}
-                  >
-                    <CategoryIcon iconName={rule.category_icon} className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <span className="text-sm font-bold text-neutral-900 block leading-tight">
-                      {rule.title}
-                    </span>
-                    <span className="text-xs text-neutral-500">
-                      {rule.category_name || 'Category'} · {rule.frequency} (Due day {rule.day_of_month || 1}) {rule.account_name ? `· ${rule.account_name}` : ''}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <span className="text-sm font-extrabold text-neutral-900">
-                    {formatAmount(rule.amount)}
-                  </span>
-
-                  <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100">
-                    <button
-                      onClick={() => {
-                        setEditingRule(rule);
-                        setIsModalOpen(true);
+          <div className="divide-y divide-[var(--kf-stone-soft,#DDD7CB)]">
+            {recurringRules.map((rule) => {
+              const isExpense = rule.transaction_type === 'expense';
+              return (
+                <div
+                  key={rule.id}
+                  className="p-4 flex items-center justify-between hover:bg-stone-50/50 transition group"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0"
+                      style={{
+                        backgroundColor:
+                          rule.category_color || (isExpense ? '#20251F' : '#059669'),
                       }}
-                      className="p-1.5 text-neutral-400 hover:text-neutral-700 rounded-lg"
-                      title="Edit"
                     >
-                      <Edit2 className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(rule.id, rule.title)}
-                      className="p-1.5 text-neutral-400 hover:text-rose-600 rounded-lg"
-                      title="Delete"
+                      <CategoryIcon iconName={rule.category_icon} className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-neutral-900 truncate">
+                          {rule.title}
+                        </span>
+                        <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-stone-100 text-stone-600 border border-stone-200">
+                          {rule.frequency}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-neutral-500 mt-0.5">
+                        <span className="font-medium text-neutral-700">{rule.category_name || 'General'}</span>
+                        <span>·</span>
+                        <span>{rule.account_name || 'Unassigned account'}</span>
+                        {rule.next_due_date && (
+                          <>
+                            <span>·</span>
+                            <span className="flex items-center gap-1 text-[var(--kf-amber-warm,#D99A37)] font-medium">
+                              <Clock className="w-3 h-3" /> Due {rule.next_due_date.slice(0, 10)}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 shrink-0 pl-3">
+                    <span
+                      className={`text-base font-extrabold tracking-tight kf-tnum ${
+                        isExpense ? 'text-neutral-900' : 'text-emerald-700'
+                      }`}
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                      {isExpense ? '−' : '+'}
+                      {formatAmount(rule.amount)}
+                    </span>
+
+                    <div className="flex items-center gap-1 opacity-70 group-hover:opacity-100 transition">
+                      <button
+                        onClick={() => {
+                          setEditingRule(rule);
+                          setIsModalOpen(true);
+                        }}
+                        className="p-1 text-neutral-400 hover:text-neutral-700 rounded transition"
+                        title="Edit plan"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(rule.id, rule.title)}
+                        className="p-1 text-neutral-400 hover:text-rose-600 rounded transition"
+                        title="Delete plan"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
