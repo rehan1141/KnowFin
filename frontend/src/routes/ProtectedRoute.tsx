@@ -1,15 +1,17 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { LoadingScreen } from '../components/common/LoadingScreen';
 
 export const ProtectedRoute: React.FC = () => {
   const { token, isLoading } = useAuth();
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div>
-      </div>
+      <LoadingScreen
+        message="Securing your workspace..."
+        submessage="Validating credentials and preparing your ledger"
+      />
     );
   }
 
