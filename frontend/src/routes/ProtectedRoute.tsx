@@ -7,12 +7,7 @@ export const ProtectedRoute: React.FC = () => {
   const { token, isLoading } = useAuth();
 
   if (isLoading) {
-    return (
-      <LoadingScreen
-        message="Securing your workspace..."
-        submessage="Validating credentials and preparing your ledger"
-      />
-    );
+    return <LoadingScreen message="Getting your finances ready…" />;
   }
 
   if (!token) {

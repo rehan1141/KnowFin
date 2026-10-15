@@ -1,60 +1,62 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface LoadingScreenProps {
   message?: string;
-  submessage?: string;
 }
 
 export const LoadingScreen: React.FC<LoadingScreenProps> = ({
-  message = 'Securing your workspace...',
-  submessage = 'Validating credentials and preparing your ledger',
+  message = 'Getting your finances ready…',
 }) => {
+  const [showNotice, setShowNotice] = useState(false);
+
+  // Only display the text status if loading lasts long enough (>380ms)
+  // to avoid distracting flicker on quick cache hits or fast transitions.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowNotice(true);
+    }, 380);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <div
       role="status"
       aria-live="polite"
-      className="min-h-screen bg-[var(--kf-ivory,#F6F2E9)] text-[var(--kf-ink,#20251F)] flex flex-col items-center justify-center p-6 select-none"
+      className="min-h-screen w-full bg-[#F6F2E9] text-[#20251F] flex flex-col items-center justify-center p-6 select-none transition-colors duration-200"
     >
-      <div className="flex flex-col items-center max-w-sm text-center">
-        {/* Animated Brand Emblem */}
-        <div className="relative mb-6">
-          {/* Subtle outer glowing aura */}
-          <div className="absolute -inset-2 rounded-2xl bg-[var(--kf-amber,#D99A37)]/10 blur-sm motion-reduce:hidden" />
-
-          {/* Rotating indeterminate ring */}
-          <div
-            className="absolute -inset-2.5 rounded-2xl border-2 border-transparent border-t-[var(--kf-amber,#D99A37)] border-r-[var(--kf-amber,#D99A37)]/40 animate-spin motion-reduce:animate-none"
-            style={{ animationDuration: '1.2s' }}
-          />
-
-          {/* Core squircle badge */}
-          <div className="relative w-14 h-14 rounded-xl bg-[var(--kf-ink,#20251F)] text-[var(--kf-ivory,#F6F2E9)] flex items-center justify-center font-bold text-xl tracking-tight shadow-sm">
+      <div className="flex flex-col items-center text-center max-w-xs transition-all duration-300 motion-reduce:transition-none">
+        {/* Cohesive Brand Mark & Wordmark */}
+        <div className="flex items-center gap-3 mb-5">
+          <span className="w-10 h-10 rounded-xl bg-[#164A3A] text-white flex items-center justify-center font-bold text-lg tracking-tight shadow-xs select-none">
             K
-          </div>
-        </div>
-
-        {/* Brand Name */}
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-base font-bold tracking-tight text-[var(--kf-ink,#20251F)]">
+          </span>
+          <span className="text-2xl font-bold tracking-tight text-[#20251F]">
             KnowFin
           </span>
-          <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[var(--kf-stone,#DDD7CB)]/50 text-[var(--kf-text-muted,#6B7268)]">
-            Ledger
-          </span>
         </div>
 
-        {/* Dynamic status message */}
-        <p className="text-sm font-semibold text-[var(--kf-ink,#20251F)] mb-1">
-          {message}
-        </p>
+        {/* Small, elegant animated loading indicator */}
+        <div className="flex items-center justify-center h-5 mb-2">
+          <div
+            className="w-4 h-4 rounded-full border-[1.5px] border-[#164A3A]/20 border-t-[#164A3A] border-r-[#D99A37] animate-spin motion-reduce:animate-none"
+            style={{ animationDuration: '0.85s' }}
+            aria-hidden="true"
+          />
+        </div>
 
-        {/* Subtitle / context */}
-        <p className="text-xs text-[var(--kf-text-muted,#6B7268)] max-w-xs leading-relaxed">
-          {submessage}
-        </p>
+        {/* Subtle, delayed context line */}
+        <div className="h-5 flex items-center justify-center">
+          <p
+            className={`text-xs text-[#6B7268] font-medium tracking-normal transition-opacity duration-300 motion-reduce:transition-none ${
+              showNotice ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            {message}
+          </p>
+        </div>
 
-        {/* Screen reader only status */}
-        <span className="sr-only">Loading application, please wait...</span>
+        {/* Screen reader announcement */}
+        <span className="sr-only">Loading application, please wait…</span>
       </div>
     </div>
   );

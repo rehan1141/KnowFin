@@ -63,7 +63,7 @@ export const LoginPage: React.FC = () => {
 
   // If session is restoring on first mount, show branded loading screen to avoid flash
   if (token && isLoading) {
-    return <LoadingScreen message="Checking active session..." />;
+    return <LoadingScreen message="Getting your finances ready…" />;
   }
 
   return (
@@ -79,7 +79,7 @@ export const LoginPage: React.FC = () => {
         {/* Top: Brand Header */}
         <div className="relative z-10">
           <Link to="/" className="inline-flex items-center gap-3 group">
-            <span className="w-9 h-9 rounded-xl bg-[var(--kf-ink,#20251F)] text-[var(--kf-ivory,#F6F2E9)] flex items-center justify-center font-bold text-sm tracking-tight shadow-xs transition-transform group-hover:scale-105">
+            <span className="w-9 h-9 rounded-xl bg-[#164A3A] text-white flex items-center justify-center font-bold text-sm tracking-tight shadow-2xs transition-transform group-hover:scale-105">
               K
             </span>
             <div className="flex flex-col">
@@ -212,7 +212,7 @@ export const LoginPage: React.FC = () => {
           {/* Mobile Header (Shown on < lg screens) */}
           <div className="lg:hidden text-center mb-8">
             <Link to="/" className="inline-flex items-center gap-2.5">
-              <span className="w-8 h-8 rounded-lg bg-[var(--kf-ink,#20251F)] text-[var(--kf-ivory,#F6F2E9)] flex items-center justify-center font-bold text-sm shadow-xs">
+              <span className="w-8 h-8 rounded-lg bg-[#164A3A] text-white flex items-center justify-center font-bold text-sm shadow-2xs">
                 K
               </span>
               <span className="text-xl font-bold tracking-tight text-[var(--kf-ink,#20251F)]">
