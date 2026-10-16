@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   Plus,
   Trash2,
@@ -57,8 +57,10 @@ export const ExpensesPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCategoryDrawerOpen, setIsCategoryDrawerOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const activeReqId = useRef(0);
 
   const loadData = useCallback(async () => {
+    const reqId = ++activeReqId.current;
     setIsLoading(true);
     setError(null);
     try {
@@ -73,6 +75,7 @@ export const ExpensesPage: React.FC = () => {
         sort_by: 'expense_date',
         sort_order: sortOrder,
       });
+      if (reqId !== activeReqId.current) return;
       setExpenses(data.items);
       setTotal(data.total);
       setPages(data.pages);
@@ -85,9 +88,12 @@ export const ExpensesPage: React.FC = () => {
       setTotalRefunds(ref);
       setNetExpenses(net);
     } catch (err: any) {
+      if (reqId !== activeReqId.current) return;
       setError(err?.response?.data?.detail || 'Could not load your transactions.');
     } finally {
-      setIsLoading(false);
+      if (reqId === activeReqId.current) {
+        setIsLoading(false);
+      }
     }
   }, [page, pageSize, activeTypeTab, selectedCategory, selectedAccountId, searchQuery, sortOrder]);
 
@@ -635,7 +641,10 @@ export const ExpensesPage: React.FC = () => {
       {/* ── 6. Modals and Drawers ── */}
       <TransactionModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingExpense(null);
+        }}
         onSubmit={editingExpense ? handleUpdate : handleCreate}
         initialData={editingExpense}
         defaultType={
