@@ -9,6 +9,7 @@ import {
   PieChart,
   CalendarSync,
 } from 'lucide-react';
+import { KnowFinLogo } from './KnowFinLogo';
 
 const primaryNavItems = [
   { name: 'Overview', path: '/dashboard', icon: LayoutDashboard },
@@ -30,18 +31,8 @@ export const Sidebar: React.FC = () => {
       <aside className="w-60 bg-white border-r border-[var(--kf-stone-soft,#DDD7CB)] flex-col justify-between hidden md:flex min-h-screen sticky top-0 h-screen">
         <div className="flex flex-col">
           {/* Confident, Clean Brand Header */}
-          <div className="h-16 flex items-center px-6 border-b border-[var(--kf-stone-soft,#DDD7CB)] gap-3">
-            <span className="w-8 h-8 rounded-lg bg-[var(--kf-ink-deep,#20251F)] text-[var(--kf-ivory-warm,#F6F2E9)] flex items-center justify-center font-bold text-sm tracking-tight shadow-xs">
-              K
-            </span>
-            <div className="flex flex-col">
-              <span className="text-base font-bold tracking-tight text-[var(--kf-ink-deep,#20251F)] leading-none">
-                KnowFin
-              </span>
-              <span className="text-[11px] text-neutral-500 font-medium mt-0.5">
-                Financial Clarity
-              </span>
-            </div>
+          <div className="h-16 flex items-center px-5 border-b border-[var(--kf-stone-soft,#DDD7CB)]">
+            <KnowFinLogo size="sm" showTagline={true} />
           </div>
 
           {/* Primary Navigation Links */}

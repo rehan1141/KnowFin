@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { KnowFinLogo } from './KnowFinLogo';
 
 interface LoadingScreenProps {
   message?: string;
@@ -26,13 +27,8 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
     >
       <div className="flex flex-col items-center text-center max-w-xs transition-all duration-300 motion-reduce:transition-none">
         {/* Cohesive Brand Mark & Wordmark */}
-        <div className="flex items-center gap-3 mb-5">
-          <span className="w-10 h-10 rounded-xl bg-[#164A3A] text-white flex items-center justify-center font-bold text-lg tracking-tight shadow-xs select-none">
-            K
-          </span>
-          <span className="text-2xl font-bold tracking-tight text-[#20251F]">
-            KnowFin
-          </span>
+        <div className="mb-5">
+          <KnowFinLogo size="md" />
         </div>
 
         {/* Small, elegant animated loading indicator */}

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { LoadingScreen } from '../components/common/LoadingScreen';
+import { KnowFinLogo } from '../components/common/KnowFinLogo';
 
 const registerSchema = z
   .object({
@@ -34,19 +35,19 @@ const registerSchema = z
 type RegisterFormData = z.infer<typeof registerSchema>;
 
 export const RegisterPage: React.FC = () => {
-  const { register: registerUser, token, isLoading } = useAuth();
+  const { register: registerUser, token, user, isLoading } = useAuth();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // If already authenticated, redirect to dashboard
+  // If already authenticated and session verified, redirect to dashboard
   useEffect(() => {
-    if (token && !isLoading) {
+    if (token && user && !isLoading) {
       navigate('/dashboard', { replace: true });
     }
-  }, [token, isLoading, navigate]);
+  }, [token, user, isLoading, navigate]);
 
   const {
     register,
@@ -66,7 +67,11 @@ export const RegisterPage: React.FC = () => {
       await registerUser(data.email, data.password, data.full_name, data.default_currency);
       navigate('/dashboard');
     } catch (err: any) {
-      setApiError(err.response?.data?.detail || 'Registration failed. Please check your information and try again.');
+      const errorMsg =
+        err.response?.data?.error?.message ||
+        err.response?.data?.detail ||
+        'Registration failed. Please check your information and try again.';
+      setApiError(errorMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -89,18 +94,8 @@ export const RegisterPage: React.FC = () => {
 
         {/* Top: Brand Header */}
         <div className="relative z-10">
-          <Link to="/" className="inline-flex items-center gap-3 group">
-            <span className="w-9 h-9 rounded-xl bg-[#164A3A] text-white flex items-center justify-center font-bold text-sm tracking-tight shadow-2xs transition-transform group-hover:scale-105">
-              K
-            </span>
-            <div className="flex flex-col">
-              <span className="text-lg font-bold tracking-tight text-[var(--kf-ink,#20251F)] leading-none">
-                KnowFin
-              </span>
-              <span className="text-[11px] text-[var(--kf-text-muted,#6B7268)] font-medium mt-0.5">
-                Financial Clarity
-              </span>
-            </div>
+          <Link to="/" className="inline-flex items-center group">
+            <KnowFinLogo size="sm" showTagline={true} />
           </Link>
         </div>
 
@@ -202,18 +197,10 @@ export const RegisterPage: React.FC = () => {
       <div className="flex-1 lg:col-span-7 xl:col-span-7 flex flex-col justify-center items-center p-6 sm:p-10 lg:p-12">
         <div className="max-w-md w-full">
           {/* Mobile Header (Shown on < lg screens) */}
-          <div className="lg:hidden text-center mb-8">
-            <Link to="/" className="inline-flex items-center gap-2.5">
-              <span className="w-8 h-8 rounded-lg bg-[#164A3A] text-white flex items-center justify-center font-bold text-sm shadow-2xs">
-                K
-              </span>
-              <span className="text-xl font-bold tracking-tight text-[var(--kf-ink,#20251F)]">
-                KnowFin
-              </span>
+          <div className="lg:hidden text-center mb-8 flex flex-col items-center">
+            <Link to="/" className="inline-flex items-center">
+              <KnowFinLogo size="sm" showTagline={true} />
             </Link>
-            <p className="mt-1 text-xs text-[var(--kf-text-muted,#6B7268)]">
-              Personal Cash Flow & Financial Clarity
-            </p>
           </div>
 
           {/* Form Card */}
