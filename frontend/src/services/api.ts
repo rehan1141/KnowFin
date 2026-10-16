@@ -28,6 +28,10 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       // Clear expired or invalid token
       localStorage.removeItem('access_token');
+      // Notify application listeners so React auth state immediately synchronizes
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('knowfin:unauthorized'));
+      }
     }
     return Promise.reject(error);
   }

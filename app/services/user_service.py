@@ -1,5 +1,6 @@
 from typing import Optional
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from fastapi import HTTPException, status
 
 from app.models.user import User
@@ -9,12 +10,17 @@ from app.services.default_data_service import seed_user_default_data
 
 
 def get_user_by_email(db: Session, email: str) -> Optional[User]:
-    """Fetch a user by their email address."""
-    return db.query(User).filter(User.email == email).first()
+    """Fetch a user by their email address (case-insensitive and trimmed)."""
+    if not email:
+        return None
+    normalized_email = email.strip().lower()
+    return db.query(User).filter(func.lower(User.email) == normalized_email).first()
 
 
 def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
-    """Authenticate user by email and password."""
+    """Authenticate user by email and password against stored hash."""
+    if not email or not password:
+        return None
     user = get_user_by_email(db, email=email)
     if not user:
         return None
@@ -27,7 +33,8 @@ def create_user(db: Session, user_in: UserCreate) -> User:
     """
     Create a new user in PostgreSQL and auto-seed default financial categories and accounts.
     """
-    existing_user = get_user_by_email(db, email=user_in.email)
+    normalized_email = user_in.email.strip().lower()
+    existing_user = get_user_by_email(db, email=normalized_email)
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -35,11 +42,11 @@ def create_user(db: Session, user_in: UserCreate) -> User:
         )
 
     db_user = User(
-        email=user_in.email,
+        email=normalized_email,
         hashed_password=hash_password(user_in.password),
-        username=user_in.username,
-        full_name=user_in.full_name,
-        default_currency=user_in.default_currency or "EUR",
+        username=user_in.username.strip() if user_in.username else None,
+        full_name=user_in.full_name.strip() if user_in.full_name else None,
+        default_currency=(user_in.default_currency or "EUR").upper(),
     )
     db.add(db_user)
     db.commit()

@@ -21,13 +21,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const loadUser = useCallback(async () => {
-    if (!token) {
+    const storedToken = localStorage.getItem('access_token');
+    if (!storedToken) {
+      setToken(null);
+      setUser(null);
       setIsLoading(false);
       return;
     }
     try {
       const currentUser = await authService.getMe();
       setUser(currentUser);
+      setToken(storedToken);
       if (currentUser.default_currency) {
         localStorage.setItem('preferred_currency', currentUser.default_currency);
       }
@@ -38,32 +42,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setIsLoading(false);
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     loadUser();
   }, [loadUser]);
 
+  // Synchronize React auth state when an API request returns 401 Unauthorized
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      localStorage.removeItem('access_token');
+      setToken(null);
+      setUser(null);
+    };
+
+    window.addEventListener('knowfin:unauthorized', handleUnauthorized);
+    return () => {
+      window.removeEventListener('knowfin:unauthorized', handleUnauthorized);
+    };
+  }, []);
+
   const login = async (email: string, password: string) => {
-    const response = await authService.login(email, password);
+    const normalizedEmail = email.trim().toLowerCase();
+    const response = await authService.login(normalizedEmail, password);
     localStorage.setItem('access_token', response.access_token);
     setToken(response.access_token);
 
-    const currentUser = await authService.getMe();
-    setUser(currentUser);
-    if (currentUser.default_currency) {
-      localStorage.setItem('preferred_currency', currentUser.default_currency);
+    try {
+      const currentUser = await authService.getMe();
+      setUser(currentUser);
+      if (currentUser.default_currency) {
+        localStorage.setItem('preferred_currency', currentUser.default_currency);
+      }
+    } catch (err) {
+      localStorage.removeItem('access_token');
+      setToken(null);
+      setUser(null);
+      throw err;
     }
   };
 
   const register = async (email: string, password: string, fullName?: string, defaultCurrency: string = 'EUR') => {
+    const normalizedEmail = email.trim().toLowerCase();
     await authService.register({
-      email,
+      email: normalizedEmail,
       password,
-      full_name: fullName,
+      full_name: fullName?.trim(),
       default_currency: defaultCurrency as any,
     });
-    await login(email, password);
+    await login(normalizedEmail, password);
   };
 
   const updateUser = async (data: UserUpdate) => {
