@@ -265,3 +265,55 @@ def test_password_hashes_stored_not_plaintext():
         assert verify_password("wrongpassword", db_user.hashed_password) is False
     finally:
         db.close()
+
+
+def test_cors_production_and_development_origins():
+    """Verify CORS headers for production and local development origins."""
+    production_origin = "https://know-fin.vercel.app"
+    localhost_origin = "http://localhost:5173"
+    unauthorized_origin = "https://unauthorized-domain.com"
+
+    # 1. Preflight OPTIONS request from production frontend origin
+    prod_preflight = client.options(
+        "/api/v1/auth/login",
+        headers={
+            "Origin": production_origin,
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type",
+        },
+    )
+    assert prod_preflight.status_code == 200
+    assert prod_preflight.headers.get("access-control-allow-origin") == production_origin
+    assert prod_preflight.headers.get("access-control-allow-origin") != "*"
+    assert prod_preflight.headers.get("access-control-allow-credentials") == "true"
+
+    # 2. Actual POST request with production Origin
+    prod_post = client.post(
+        "/api/v1/auth/login",
+        json={"email": "nonexistent@example.com", "password": "WrongPassword123!"},
+        headers={"Origin": production_origin},
+    )
+    assert prod_post.headers.get("access-control-allow-origin") == production_origin
+    assert prod_post.headers.get("access-control-allow-credentials") == "true"
+
+    # 3. Preserved local development origin
+    local_preflight = client.options(
+        "/api/v1/auth/login",
+        headers={
+            "Origin": localhost_origin,
+            "Access-Control-Request-Method": "POST",
+        },
+    )
+    assert local_preflight.status_code == 200
+    assert local_preflight.headers.get("access-control-allow-origin") == localhost_origin
+
+    # 4. Unauthorized origin is rejected (no Access-Control-Allow-Origin header)
+    unauth_resp = client.options(
+        "/api/v1/auth/login",
+        headers={
+            "Origin": unauthorized_origin,
+            "Access-Control-Request-Method": "POST",
+        },
+    )
+    assert "access-control-allow-origin" not in unauth_resp.headers
+
