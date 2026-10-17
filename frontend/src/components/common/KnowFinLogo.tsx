@@ -9,7 +9,7 @@ interface KnowFinLogoProps {
 
 /**
  * Custom chunky rounded KnowFin "K" mark with warm amber folded banknote facet
- * and playful energy sparks, matching the Gen-Z brand identity reference.
+ * and playful energy sparks, matching the brand identity.
  */
 export const KnowFinMark: React.FC<{
   size?: number;
@@ -31,7 +31,7 @@ export const KnowFinMark: React.FC<{
       viewBox="0 0 100 100"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className={`shrink-0 ${className}`}
+      className={`shrink-0 block ${className}`}
       aria-hidden="true"
     >
       {/* ── 3 Playful Energy Sparks (Top Right) ── */}
@@ -94,10 +94,10 @@ export const KnowFinLogo: React.FC<KnowFinLogoProps> = ({
   showTagline = false,
 }) => {
   const sizeMap = {
-    sm: { icon: 28, text: 'text-lg', badge: 32 },
-    md: { icon: 38, text: 'text-2xl', badge: 44 },
-    lg: { icon: 48, text: 'text-3xl', badge: 56 },
-    xl: { icon: 64, text: 'text-4xl', badge: 72 },
+    sm: { icon: 32, text: 'text-[19px]', badge: 36, tagline: 'text-[8.5px]' },
+    md: { icon: 40, text: 'text-[24px]', badge: 44, tagline: 'text-[10px]' },
+    lg: { icon: 48, text: 'text-[30px]', badge: 56, tagline: 'text-[11px]' },
+    xl: { icon: 64, text: 'text-[40px]', badge: 72, tagline: 'text-[13px]' },
   };
 
   const currentSize = sizeMap[size];
@@ -105,7 +105,7 @@ export const KnowFinLogo: React.FC<KnowFinLogoProps> = ({
   if (variant === 'app-icon') {
     return (
       <div
-        className={`relative inline-flex items-center justify-center rounded-2xl bg-[#164A3A] shadow-md p-1.5 ${className}`}
+        className={`relative inline-flex items-center justify-center rounded-2xl bg-[#164A3A] shadow-md p-1.5 shrink-0 ${className}`}
         style={{ width: currentSize.badge, height: currentSize.badge }}
       >
         <KnowFinMark
@@ -128,17 +128,19 @@ export const KnowFinLogo: React.FC<KnowFinLogoProps> = ({
   }
 
   return (
-    <div className={`inline-flex items-center gap-2.5 ${className}`}>
-      <KnowFinMark size={currentSize.icon} />
-      <div className="flex flex-col">
+    <div className={`inline-flex items-center gap-2.5 min-w-0 ${className}`}>
+      <KnowFinMark size={currentSize.icon} className="shrink-0" />
+      <div className="flex flex-col justify-center min-w-0">
         <span
-          className={`font-black tracking-tight text-[#164A3A] leading-none ${currentSize.text}`}
+          className={`font-black tracking-tight text-[#164A3A] leading-none select-none ${currentSize.text}`}
           style={{ fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif' }}
         >
           KnowFin
         </span>
         {showTagline && (
-          <span className="text-[9px] sm:text-[10px] font-bold tracking-[0.18em] text-[#6B7268] uppercase mt-1">
+          <span
+            className={`font-bold tracking-[0.14em] text-[#6B7268] uppercase whitespace-nowrap mt-1 select-none leading-none ${currentSize.tagline}`}
+          >
             YOUR MONEY, MADE CLEAR
           </span>
         )}

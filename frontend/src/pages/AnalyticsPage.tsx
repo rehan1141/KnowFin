@@ -33,7 +33,7 @@ import type {
 } from '../types';
 
 export const AnalyticsPage: React.FC = () => {
-  const { formatAmount } = useCurrency();
+  const { formatAmount, convertAmount, symbol } = useCurrency();
   const currentDate = new Date();
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
@@ -128,14 +128,14 @@ export const AnalyticsPage: React.FC = () => {
   const flowPoints =
     cashFlowData?.points.map((p) => ({
       date: p.date.slice(5), // MM-DD
-      Income: Number(p.income),
-      Expense: Number(p.expense),
+      Income: convertAmount(Number(p.income)),
+      Expense: convertAmount(Number(p.expense)),
     })) || [];
 
   const hasActivity = totalTransactions > 0 || totalIncome > 0 || grossSpending > 0;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-200 max-w-5xl mx-auto pb-12">
+    <div className="space-y-6 kf-page-transition max-w-5xl mx-auto pb-12">
       {/* ── 1. Page Header and Period Selector ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#DDD7CB]/70">
         <div>
@@ -346,10 +346,10 @@ export const AnalyticsPage: React.FC = () => {
                       tickLine={false}
                       axisLine={false}
                       tick={{ fill: '#8E948B', fontSize: 11 }}
-                      tickFormatter={(v) => `${v}`}
+                      tickFormatter={(v) => `${symbol}${v}`}
                     />
                     <Tooltip
-                      formatter={(val: unknown) => [formatAmount(Number(val)), '']}
+                      formatter={(val: unknown) => [formatAmount(Number(val), { skipConversion: true }), '']}
                       contentStyle={{
                         backgroundColor: '#FFFFFF',
                         border: '1px solid #DDD7CB',

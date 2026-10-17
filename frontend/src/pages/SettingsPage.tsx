@@ -8,6 +8,8 @@ import {
   ExternalLink,
   ChevronRight,
   HelpCircle,
+  RefreshCw,
+  AlertTriangle,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useCurrency } from '../contexts/CurrencyContext';
@@ -16,7 +18,16 @@ import type { Account, Currency } from '../types';
 
 export const SettingsPage: React.FC = () => {
   const { user, updateUser } = useAuth();
-  const { currency, setCurrency, formatAmount } = useCurrency();
+  const {
+    currency,
+    setCurrency,
+    formatAmount,
+    convertAmount,
+    convertInputToEur,
+    rates,
+    rateStatus,
+    refreshRates,
+  } = useCurrency();
 
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [isLoadingAccounts, setIsLoadingAccounts] = useState(true);
@@ -71,19 +82,20 @@ export const SettingsPage: React.FC = () => {
 
   const handleStartEditBalance = (acc: Account) => {
     setEditingAccountId(acc.id);
-    setOpeningBalanceInput(
+    const converted =
       acc.initial_balance !== null && acc.initial_balance !== undefined
-        ? String(acc.initial_balance)
-        : ''
-    );
+        ? convertAmount(Number(acc.initial_balance))
+        : '';
+    setOpeningBalanceInput(converted !== '' ? String(converted) : '');
   };
 
   const handleSaveOpeningBalance = async (accId: number) => {
     setIsSavingBalance(true);
     try {
-      const val = openingBalanceInput.trim() === '' ? null : Number(openingBalanceInput);
+      const rawNum = openingBalanceInput.trim() === '' ? null : Number(openingBalanceInput);
+      const valInEur = rawNum !== null ? convertInputToEur(rawNum) : null;
       await accountService.update(accId, {
-        initial_balance: val,
+        initial_balance: valInEur,
       });
       setEditingAccountId(null);
       await loadAccounts();
@@ -95,7 +107,7 @@ export const SettingsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-200 max-w-4xl mx-auto pb-12">
+    <div className="space-y-6 kf-page-transition max-w-4xl mx-auto pb-12">
       {/* ── Page Header ── */}
       <div className="pb-3 border-b border-[#DDD7CB]/70">
         <h1 className="text-2xl sm:text-3xl font-normal text-[#20251F] tracking-tight">
@@ -109,16 +121,33 @@ export const SettingsPage: React.FC = () => {
       <div className="space-y-5">
         {/* ── Section 1: Reporting Currency ── */}
         <div className="bg-white border border-[#DDD7CB] rounded-[18px] p-6 shadow-2xs space-y-4">
-          <div className="flex items-center gap-2.5 pb-3 border-b border-[#DDD7CB]/60">
-            <div className="w-7 h-7 rounded-[9px] bg-[#FAF8F3] border border-[#DDD7CB] flex items-center justify-center text-[#20251F]">
-              <DollarSign className="w-4 h-4 stroke-[2]" aria-hidden="true" />
+          <div className="flex items-center justify-between pb-3 border-b border-[#DDD7CB]/60">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-[9px] bg-[#FAF8F3] border border-[#DDD7CB] flex items-center justify-center text-[#20251F]">
+                <DollarSign className="w-4 h-4 stroke-[2]" aria-hidden="true" />
+              </div>
+              <div>
+                <h2 className="text-sm font-medium text-[#20251F]">Reporting Currency</h2>
+                <p className="text-xs text-[#6B7268] mt-0.5">
+                  Converts monetary displays across your dashboard, budgets, and insights without modifying stored records.
+                </p>
+              </div>
             </div>
-            <h2 className="text-sm font-medium text-[#20251F]">Reporting Currency</h2>
-          </div>
 
-          <p className="text-xs text-[#6B7268] leading-relaxed">
-            Select your primary currency symbol for display across your dashboard, transactions, and reports.
-          </p>
+            <button
+              type="button"
+              onClick={refreshRates}
+              disabled={rateStatus.isLoading}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] border border-[#DDD7CB] hover:bg-[#FAF8F3] text-xs font-medium text-[#20251F] transition-all cursor-pointer disabled:opacity-50"
+              title="Refresh live exchange rates"
+            >
+              <RefreshCw
+                className={`w-3.5 h-3.5 text-[#D99A37] ${rateStatus.isLoading ? 'animate-spin' : ''}`}
+                aria-hidden="true"
+              />
+              <span className="hidden sm:inline">Refresh rates</span>
+            </button>
+          </div>
 
           <div className="grid grid-cols-3 gap-3 max-w-md">
             {(['EUR', 'USD', 'INR'] as Currency[]).map((c) => (
@@ -128,7 +157,7 @@ export const SettingsPage: React.FC = () => {
                 onClick={() => handleCurrencyChange(c)}
                 className={`py-3 px-4 rounded-[14px] border text-center transition-all flex flex-col items-center justify-center gap-1 active:scale-[0.98] cursor-pointer ${
                   currency === c
-                    ? 'border-[#D99A37] bg-[#FBF4E8] text-[#20251F] shadow-2xs'
+                    ? 'border-[#D99A37] bg-[#FBF4E8] text-[#20251F] shadow-2xs font-medium'
                     : 'border-[#DDD7CB] text-[#6B7268] bg-white hover:border-[#C4BEB1] hover:text-[#20251F]'
                 }`}
               >
@@ -140,10 +169,39 @@ export const SettingsPage: React.FC = () => {
             ))}
           </div>
 
-          <div className="flex items-start gap-2.5 p-3.5 bg-[#FAF8F3] border border-[#DDD7CB]/70 rounded-[14px] text-[#20251F] text-xs">
-            <HelpCircle className="w-4 h-4 text-[#D99A37] shrink-0 mt-0.5" aria-hidden="true" />
+          {/* Rate status information bar */}
+          <div className="p-3.5 bg-[#FAF8F3] border border-[#DDD7CB]/70 rounded-[14px] space-y-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-[#20251F]">Reference Rates:</span>
+                <span className="text-[#6B7268] kf-tnum">
+                  1,00 € = ${(rates.USD || 1.085).toFixed(2)} = ₹{(rates.INR || 90.5).toFixed(2)}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-[11px] text-[#8E948B]">
+                <span>{rateStatus.source || 'Open Exchange Rates'}</span>
+                {rateStatus.lastUpdated && (
+                  <span>
+                    • Updated {new Date(rateStatus.lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {rateStatus.isStale && (
+              <div className="flex items-center gap-1.5 text-xs text-[#D99A37]">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                <span className="text-[11px]">
+                  {rateStatus.error || 'Live rates provider temporarily slow or cached. Using retained baseline rates.'}
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-start gap-2.5 p-3.5 bg-white border border-[#DDD7CB]/60 rounded-[14px] text-[#20251F] text-xs">
+            <HelpCircle className="w-4 h-4 text-[#4C9B79] shrink-0 mt-0.5" aria-hidden="true" />
             <div className="text-[11px] text-[#6B7268] leading-relaxed">
-              <span className="font-medium text-[#20251F]">Display-only formatting:</span> KnowFin preserves the raw numerical values of all recorded transactions. Changing your currency preference updates the formatting symbol across your views; it does not perform automated exchange rate conversions.
+              <span className="font-medium text-[#20251F]">Live reporting currency:</span> KnowFin preserves your original financial records in canonical EUR. When you switch reporting currencies, all balances, transactions, and budgets are dynamically converted using verified exchange rates.
             </div>
           </div>
         </div>

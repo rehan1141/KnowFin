@@ -23,6 +23,7 @@ from app.api.v1.recurring import router as recurring_router
 from app.api.v1.categories_budgets import categories_router, budgets_router
 from app.api.v1.analytics import router as analytics_router
 from app.api.v1.transfers import router as transfers_router
+from app.api.v1.exchange_rates import router as exchange_rates_router
 
 # Initialise structured JSON logging before anything else
 setup_logging()
@@ -94,6 +95,7 @@ app.include_router(categories_router, prefix=settings.API_V1_STR)
 app.include_router(budgets_router, prefix=settings.API_V1_STR)
 app.include_router(analytics_router, prefix=settings.API_V1_STR)
 app.include_router(transfers_router, prefix=settings.API_V1_STR)
+app.include_router(exchange_rates_router, prefix=settings.API_V1_STR)
 
 
 # ── Health Check ──────────────────────────────────────────────────────────────

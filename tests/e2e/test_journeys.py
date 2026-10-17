@@ -99,7 +99,7 @@ def test_journey_02_navigate_every_primary_screen(page: Page):
     setup_authenticated_session(page)
 
     routes = [
-        ("/dashboard", "Current balance"),
+        ("/dashboard", "Net spending"),
         ("/transactions", "Transactions"),
         ("/accounts", "Accounts"),
         ("/recurring", "Recurring"),
@@ -360,8 +360,8 @@ def test_journey_09_dashboard_category_charts_and_analytics(page: Page):
 
     # Dashboard overview
     page.goto(f"{FRONTEND_URL}/dashboard")
-    page.wait_for_selector('text="Current balance"', timeout=8000)
-    expect(page.locator('text="Current balance"').first).to_be_visible()
+    page.wait_for_selector('text="Net spending"', timeout=8000)
+    expect(page.locator('text="Net spending"').first).to_be_visible()
 
     # Insights / Analytics page
     page.goto(f"{FRONTEND_URL}/analytics")

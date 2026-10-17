@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, ChevronDown, Check, X, Settings } from 'lucide-react';
+import { KnowFinLogo } from './KnowFinLogo';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCurrency } from '../../contexts/CurrencyContext';
 import type { Currency } from '../../types';
@@ -41,13 +42,8 @@ export const Header: React.FC = () => {
       <header className="h-16 bg-white border-b border-[var(--kf-stone-soft,#DDD7CB)] px-6 md:px-8 flex items-center justify-between sticky top-0 z-30">
         {/* Mobile Brand / Page Indicator */}
         <div className="flex items-center gap-3">
-          <div className="md:hidden flex items-center gap-2">
-            <span className="w-7 h-7 rounded-lg bg-[var(--kf-ink-deep,#20251F)] text-[var(--kf-ivory-warm,#F6F2E9)] flex items-center justify-center font-bold text-xs shadow-2xs">
-              K
-            </span>
-            <span className="font-bold text-[var(--kf-ink-deep,#20251F)] tracking-tight text-base">
-              KnowFin
-            </span>
+          <div className="md:hidden flex items-center">
+            <KnowFinLogo size="sm" showTagline={false} />
           </div>
           <div className="hidden md:block text-xs text-neutral-400 font-medium">
             <span>Financial Integrity & Activity Ledger</span>
@@ -91,7 +87,7 @@ export const Header: React.FC = () => {
           onClick={() => setIsProfileOpen(false)}
         >
           <div
-            className="bg-white rounded-2xl border border-[var(--kf-stone-soft,#DDD7CB)] shadow-xl max-w-sm w-full p-6 animate-in fade-in duration-200"
+            className="bg-white rounded-2xl border border-[var(--kf-stone-soft,#DDD7CB)] shadow-xl max-w-sm w-full p-6 kf-modal-enter"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between pb-4 border-b border-[var(--kf-stone-soft,#DDD7CB)]">

@@ -149,7 +149,7 @@ export const ExpensesPage: React.FC = () => {
     searchQuery.trim() !== '';
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-200 max-w-5xl mx-auto pb-12">
+    <div className="space-y-6 kf-page-transition max-w-5xl mx-auto pb-12">
       {/* ── 1. Page Header: Title and Action Buttons ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#DDD7CB]/70">
         <div>

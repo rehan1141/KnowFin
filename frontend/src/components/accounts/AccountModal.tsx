@@ -101,7 +101,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-[var(--kf-stone-soft,#DDD7CB)] animate-in fade-in duration-150"
+        className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-[var(--kf-stone-soft,#DDD7CB)] kf-modal-enter"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between pb-4 border-b border-[var(--kf-stone-soft,#DDD7CB)]">

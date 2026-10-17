@@ -16,7 +16,7 @@ import { CategorySquircle } from '../utils/categoryIcons';
 import type { Category, BudgetStatusItem } from '../types';
 
 export const BudgetsPage: React.FC = () => {
-  const { formatAmount, symbol } = useCurrency();
+  const { formatAmount, symbol, convertInputToEur } = useCurrency();
   const currentDate = new Date();
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
@@ -64,9 +64,10 @@ export const BudgetsPage: React.FC = () => {
     setIsSubmitting(true);
     setFormError(null);
     try {
+      const limitInEur = convertInputToEur(Number(monthlyLimit));
       await budgetService.createOrUpdate({
         category_id: Number(categoryId),
-        monthly_limit: Number(monthlyLimit),
+        monthly_limit: limitInEur,
         month: selectedMonth,
         year: selectedYear,
       });
