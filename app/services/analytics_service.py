@@ -84,6 +84,7 @@ def get_monthly_summary(db: Session, user_id: int, month: int, year: int) -> Dic
     # 8. Total available balance across all user accounts
     accounts_info = list_user_accounts(db, user_id)
     total_balance = accounts_info["total_balance"]
+    is_balance_set = accounts_info["is_balance_set"]
 
     return {
         "month": month,
@@ -100,6 +101,7 @@ def get_monthly_summary(db: Session, user_id: int, month: int, year: int) -> Dic
         "variable_expenses": variable_expenses,
         "average_daily_spending": avg_daily,
         "total_balance": total_balance,
+        "is_balance_set": is_balance_set,
     }
 
 

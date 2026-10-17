@@ -43,10 +43,11 @@ import type {
 } from '../types';
 
 const PALETTE_COLORS = ['#E97962', '#4778E5', '#D99A37', '#4C9B79', '#8B79C6', '#20251F'];
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
-  const { formatAmount } = useCurrency();
+  const { formatAmount, convertAmount, symbol } = useCurrency();
   const currentDate = new Date();
   const [selectedMonth, setSelectedMonth] = useState<number>(currentDate.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(currentDate.getFullYear());
@@ -54,7 +55,9 @@ export const DashboardPage: React.FC = () => {
   const [summary, setSummary] = useState<MonthlySummary | null>(null);
   const [categories, setCategories] = useState<CategorySpending[]>([]);
   const [budgets, setBudgets] = useState<BudgetStatusItem[]>([]);
-  const [cashFlowData, setCashFlowData] = useState<any[]>([]);
+  const [sixMonthsTrend, setSixMonthsTrend] = useState<
+    { month: string; income: number; spending: number }[]
+  >([]);
   const [recentTransactions, setRecentTransactions] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -76,19 +79,47 @@ export const DashboardPage: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const [sumRes, catRes, budRes, flowRes, txRes] = await Promise.all([
+      // Determine the 6-month window ending at (selectedYear, selectedMonth)
+      const past6Months: { month: number; year: number; label: string }[] = [];
+      for (let i = 5; i >= 0; i--) {
+        let m = selectedMonth - i;
+        let y = selectedYear;
+        while (m <= 0) {
+          m += 12;
+          y -= 1;
+        }
+        past6Months.push({ month: m, year: y, label: MONTH_NAMES[m - 1] });
+      }
+
+      const [sumRes, catRes, budRes, txRes, ...prevSummaries] = await Promise.all([
         analyticsService.getMonthlySummary(selectedMonth, selectedYear),
         analyticsService.getByCategory(selectedMonth, selectedYear),
         analyticsService.getBudgetStatus(selectedMonth, selectedYear),
-        analyticsService.getCashFlow(selectedMonth, selectedYear),
         expenseService.list({ page_size: 5, page: 1 }),
+        ...past6Months.slice(0, 5).map((pm) =>
+          analyticsService.getMonthlySummary(pm.month, pm.year).catch(() => null)
+        ),
       ]);
 
       setSummary(sumRes);
       setCategories(catRes.categories || []);
       setBudgets(budRes.budgets || []);
-      setCashFlowData(flowRes.points || []);
       setRecentTransactions(txRes.items || []);
+
+      const trendPoints = past6Months.map((pm, idx) => {
+        const s = idx === 5 ? sumRes : prevSummaries[idx];
+        const income = s?.total_income != null ? Number(s.total_income) : 0;
+        const spending =
+          s?.gross_spending != null
+            ? Number(s.gross_spending)
+            : Number(s?.total_spent || 0);
+        return {
+          month: pm.label,
+          income,
+          spending,
+        };
+      });
+      setSixMonthsTrend(trendPoints);
     } catch (err: any) {
       setError(err?.response?.data?.detail || 'Could not load your financial overview.');
     } finally {
@@ -141,8 +172,15 @@ export const DashboardPage: React.FC = () => {
     );
   }
 
-  const isBalanceSet = summary?.is_balance_set === true && summary?.total_balance !== null;
-  const currentBalance = summary?.total_balance ? Number(summary.total_balance) : 0;
+  const isBalanceSet = Boolean(
+    summary?.is_balance_set === true &&
+    summary?.total_balance !== null &&
+    summary?.total_balance !== undefined
+  );
+  const currentBalance =
+    summary?.total_balance !== null && summary?.total_balance !== undefined
+      ? Number(summary.total_balance)
+      : 0;
   const totalIncome = summary?.total_income ? Number(summary.total_income) : 0;
   const grossSpending = summary?.gross_spending
     ? Number(summary.gross_spending)
@@ -152,18 +190,12 @@ export const DashboardPage: React.FC = () => {
     ? Number(summary.net_spending)
     : Math.max(0, grossSpending - totalRefunds);
 
-  // Six-month trend data for comparison chart
-  const sixMonthsTrend =
-    cashFlowData.length > 0
-      ? cashFlowData
-      : [
-          { month: 'May', income: 0, spending: 0 },
-          { month: 'Jun', income: 0, spending: 0 },
-          { month: 'Jul', income: 0, spending: 0 },
-          { month: 'Aug', income: 0, spending: 0 },
-          { month: 'Sep', income: 0, spending: 0 },
-          { month: 'Oct', income: totalIncome, spending: grossSpending },
-        ];
+  // Six-month trend data converted to reporting currency
+  const convertedSixMonthsTrend = sixMonthsTrend.map((d) => ({
+    ...d,
+    income: convertAmount(d.income),
+    spending: convertAmount(d.spending),
+  }));
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-12 animate-in fade-in duration-200">
@@ -440,16 +472,16 @@ export const DashboardPage: React.FC = () => {
 
           <div className="h-48 py-3">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={sixMonthsTrend} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+              <BarChart data={convertedSixMonthsTrend} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                 <XAxis dataKey="month" stroke="#8E948B" fontSize={10} tickLine={false} />
                 <YAxis
                   stroke="#8E948B"
                   fontSize={10}
                   tickLine={false}
-                  tickFormatter={(v) => `€${v}`}
+                  tickFormatter={(v) => `${symbol}${v}`}
                 />
                 <Tooltip
-                  formatter={(val: any) => formatAmount(Number(val))}
+                  formatter={(val: any) => [formatAmount(Number(val), { skipConversion: true }), '']}
                   contentStyle={{
                     backgroundColor: '#FFFFFF',
                     border: '1px solid #DDD7CB',
@@ -649,16 +681,16 @@ export const DashboardPage: React.FC = () => {
 
           <div className="h-44 py-2">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={sixMonthsTrend} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+              <AreaChart data={convertedSixMonthsTrend} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                 <XAxis dataKey="month" stroke="#8E948B" fontSize={10} tickLine={false} />
                 <YAxis
                   stroke="#8E948B"
                   fontSize={10}
                   tickLine={false}
-                  tickFormatter={(v) => `€${v}`}
+                  tickFormatter={(v) => `${symbol}${v}`}
                 />
                 <Tooltip
-                  formatter={(val: any) => formatAmount(Number(val))}
+                  formatter={(val: any) => [formatAmount(Number(val), { skipConversion: true }), '']}
                   contentStyle={{
                     backgroundColor: '#FFFFFF',
                     border: '1px solid #DDD7CB',

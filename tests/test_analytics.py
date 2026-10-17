@@ -145,6 +145,8 @@ def test_october_2026_income_and_expense_scenario():
     assert float(sum_data["net_savings"]) == 2019.00
     assert sum_data["savings_rate"] == 96.1
     assert sum_data["total_transactions"] == 3
+    assert sum_data["is_balance_set"] is True
+    assert float(sum_data["total_balance"]) == 3019.00
 
     # 6. Check Accounts: Main Wallet balance == 1000 + 2100 - 81 == 3019.00
     resp_accts = client.get("/api/v1/accounts/", headers=headers)
@@ -224,3 +226,31 @@ def test_transfers_do_not_affect_monthly_analytics():
     savings_b = next(a for a in accts if a["id"] == a2["id"])
     assert float(bank_a["current_balance"]) == 400.00
     assert float(savings_b["current_balance"]) == 300.00
+
+
+def test_monthly_summary_distinguishes_unset_from_zero_balance():
+    """Verify that get_monthly_summary correctly sets is_balance_set and distinguishes unset vs zero."""
+    headers = get_auth_headers()
+
+    # Case 1: Account with UNSET opening balance
+    client.post(
+        "/api/v1/accounts/",
+        json={"name": "Unset Account", "account_type": "bank", "currency": "EUR"},
+        headers=headers,
+    )
+    sum_unset = client.get("/api/v1/analytics/summary?month=10&year=2026", headers=headers).json()
+    assert sum_unset["is_balance_set"] is False
+    assert sum_unset["total_balance"] is None
+
+    # Case 2: Update account to explicit 0.00 opening balance
+    accts = client.get("/api/v1/accounts/", headers=headers).json()["accounts"]
+    acc_id = accts[0]["id"]
+    client.put(
+        f"/api/v1/accounts/{acc_id}",
+        json={"initial_balance": 0.00},
+        headers=headers,
+    )
+    sum_zero = client.get("/api/v1/analytics/summary?month=10&year=2026", headers=headers).json()
+    assert sum_zero["is_balance_set"] is True
+    assert float(sum_zero["total_balance"]) == 0.00
+
